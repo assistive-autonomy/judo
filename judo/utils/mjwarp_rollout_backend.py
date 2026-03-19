@@ -2,6 +2,8 @@
 
 """GPU-accelerated rollout backend using mujoco_warp (NVIDIA Warp)."""
 
+import logging
+
 import mujoco_warp as mjw
 import numpy as np
 import warp as wp
@@ -11,8 +13,11 @@ from judo.controller.batched_spot_locomotion import BatchedSpotLocomotion
 from judo.utils.rollout_backend import RolloutBackend
 from judo.utils.timer import Timer
 
+logger = logging.getLogger(__name__)
+
 NCONMAX = 256
 NJMAX = 900
+CCD_ITERATIONS = 200
 DEVICE = "cuda:0"
 
 
@@ -66,6 +71,7 @@ class MJWarpRolloutBackend(RolloutBackend):
         num_problems: int = 1,
         locomotion_controller: BatchedSpotLocomotion | None = None,
         device: str = DEVICE,
+        check_nan: bool = False,
     ) -> None:
         """Initialize the backend with optional hierarchical control.
 
@@ -75,7 +81,10 @@ class MJWarpRolloutBackend(RolloutBackend):
             num_problems: Number of independent problems.
             locomotion_controller: Locomotion policy (e.g. BatchedSpotLocomotion) or None.
             device: Device for GPU operations.
+            check_nan: If True, check for NaN in rollout outputs and log warnings.
+                Useful for debugging mujoco_warp contact solver issues (e.g. low friction).
         """
+        self.check_nan = check_nan
         assert device != "cpu", "RolloutBackend requires a GPU device."
 
         self.device = device
@@ -87,7 +96,7 @@ class MJWarpRolloutBackend(RolloutBackend):
 
         with wp.ScopedDevice(device):
             self.mjw_model = mjw.put_model(self.model)
-            self.mjw_model.opt.ccd_iterations = 60
+            self.mjw_model.opt.ccd_iterations = CCD_ITERATIONS
             self.mjw_data = mjw.put_data(
                 self.model,
                 self.data,
@@ -107,12 +116,11 @@ class MJWarpRolloutBackend(RolloutBackend):
 
         # Initialize hierarchical control (optional)
         self.locomotion_controller = locomotion_controller if locomotion_controller else PassThroughController()
+        self._uses_locomotion_policy = locomotion_controller is not None
 
         # Calculate policy decimation
         physics_dt = model.opt.timestep
-        self.policy_decimation = max(
-            1, int(1.0 / (self.locomotion_controller.target_frequency * physics_dt))
-        )
+        self.policy_decimation = max(1, int(1.0 / (self.locomotion_controller.target_frequency * physics_dt)))
         self.global_step_counter = 0
 
         # Initialize timers for performance measurement
@@ -146,7 +154,6 @@ class MJWarpRolloutBackend(RolloutBackend):
         """
         nq = self.model.nq
         nv = self.model.nv
-        nu = self.model.nu
         nsensordata = self.model.nsensordata
         horizon = controls.shape[1]
 
@@ -182,11 +189,101 @@ class MJWarpRolloutBackend(RolloutBackend):
         # GPU rollout loop
         self.timer_rollout.tic()
 
+        if self._uses_locomotion_policy:
+            previous_actions_wp = self._rollout_with_locomotion_policy(
+                num_worlds,
+                horizon,
+                nq,
+                nv,
+                controls_wp,
+                out_qpos_wp,
+                out_qvel_wp,
+                out_sensors_wp,
+                last_policy_output,
+            )
+        else:
+            previous_actions_wp = self._rollout_direct(
+                horizon,
+                controls_wp,
+                out_qpos_wp,
+                out_qvel_wp,
+                out_sensors_wp,
+            )
+
+        wp.synchronize()
+        self.timer_rollout.toc()
+
+        # GPU -> CPU copy
+        self.timer_gpu_to_cpu.tic()
+        out_states = np.zeros((num_worlds, horizon, nq + nv), dtype=np.float32)
+        out_states[:, :, :nq] = out_qpos_wp.numpy()
+        out_states[:, :, nq : nq + nv] = out_qvel_wp.numpy()
+        out_sensors = out_sensors_wp.numpy()
+        self.timer_gpu_to_cpu.toc()
+
+        if self.check_nan:
+            self._warn_if_nan(out_states, out_sensors)
+
+        return out_states, out_sensors, previous_actions_wp
+
+    @staticmethod
+    def _warn_if_nan(states: np.ndarray, sensors: np.ndarray) -> None:
+        """Log warnings if NaN detected in rollout outputs."""
+        if np.any(np.isnan(states)):
+            nan_worlds = np.any(np.isnan(states), axis=(1, 2))
+            nan_count = int(np.sum(nan_worlds))
+            nan_indices = np.where(nan_worlds)[0]
+            logger.warning(
+                f"NaN in rollout states! {nan_count}/{states.shape[0]} worlds affected, "
+                f"indices: {nan_indices[:10].tolist()}"
+            )
+            # Find first NaN timestep for the first affected world
+            first_world = nan_indices[0]
+            nan_timesteps = np.where(np.any(np.isnan(states[first_world]), axis=1))[0]
+            logger.warning(f"  World {first_world}: first NaN at timestep {nan_timesteps[0]}")
+            if nan_timesteps[0] > 0:
+                logger.warning(f"  State at t={nan_timesteps[0] - 1}: {states[first_world, nan_timesteps[0] - 1]}")
+        if np.any(np.isnan(sensors)):
+            nan_worlds = np.any(np.isnan(sensors), axis=(1, 2))
+            logger.warning(f"NaN in rollout sensors! {int(np.sum(nan_worlds))}/{sensors.shape[0]} worlds affected")
+
+    def _rollout_direct(
+        self,
+        horizon: int,
+        controls_wp: wp.array,
+        out_qpos_wp: wp.array,
+        out_qvel_wp: wp.array,
+        out_sensors_wp: wp.array,
+    ) -> None:
+        """Fast rollout path for direct control (no locomotion policy).
+
+        Pipelines all GPU operations with a single sync at the end (done by caller).
+        """
+        for t in range(horizon):
+            wp.copy(self.mjw_data.ctrl, controls_wp[:, t, :])
+            wp.capture_launch(self.mjw_step_graph)
+            wp.copy(out_qpos_wp[:, t, :], self.mjw_data.qpos)
+            wp.copy(out_qvel_wp[:, t, :], self.mjw_data.qvel)
+            wp.copy(out_sensors_wp[:, t, :], self.mjw_data.sensordata)
+
+    def _rollout_with_locomotion_policy(
+        self,
+        num_worlds: int,
+        horizon: int,
+        nq: int,
+        nv: int,
+        controls_wp: wp.array,
+        out_qpos_wp: wp.array,
+        out_qvel_wp: wp.array,
+        out_sensors_wp: wp.array,
+        last_policy_output: wp.array | None,
+    ) -> wp.array | None:
+        """Rollout path for hierarchical control with locomotion policy."""
+        nu = self.model.nu
         qpos_wp = wp.zeros((num_worlds, nq), dtype=wp.float32)
         qvel_wp = wp.zeros((num_worlds, nv), dtype=wp.float32)
         ctrl_wp = wp.zeros((num_worlds, nu), dtype=wp.float32)
         target_q_wp = None
-
         previous_actions_wp = last_policy_output
 
         for t in range(horizon):
@@ -194,11 +291,8 @@ class MJWarpRolloutBackend(RolloutBackend):
 
             cmd_wp = controls_wp[:, t, :]
 
-            # Update locomotion policy
-            if (
-                target_q_wp is None
-                or self.global_step_counter % self.policy_decimation == 0
-            ):
+            # Update locomotion policy at the policy's target frequency
+            if target_q_wp is None or self.global_step_counter % self.policy_decimation == 0:
                 target_q_wp, previous_actions_wp = self.locomotion_controller.compute_batch(
                     cmd_wp, qpos_wp, qvel_wp, previous_actions_wp
                 )
@@ -223,18 +317,7 @@ class MJWarpRolloutBackend(RolloutBackend):
             wp.copy(out_qvel_wp[:, t, :], self.mjw_data.qvel)
             wp.copy(out_sensors_wp[:, t, :], self.mjw_data.sensordata)
 
-        wp.synchronize()
-        self.timer_rollout.toc()
-
-        # GPU -> CPU copy
-        self.timer_gpu_to_cpu.tic()
-        out_states = np.zeros((num_worlds, horizon, nq + nv), dtype=np.float32)
-        out_states[:, :, :nq] = out_qpos_wp.numpy()
-        out_states[:, :, nq : nq + nv] = out_qvel_wp.numpy()
-        out_sensors = out_sensors_wp.numpy()
-        self.timer_gpu_to_cpu.toc()
-
-        return out_states, out_sensors, previous_actions_wp
+        return previous_actions_wp
 
     def update(self, num_threads: int, num_problems: int = 1) -> None:
         """Update the backend with a new number of threads."""
@@ -244,7 +327,7 @@ class MJWarpRolloutBackend(RolloutBackend):
 
         with wp.ScopedDevice(DEVICE):
             self.mjw_model = mjw.put_model(self.model)
-            self.mjw_model.opt.ccd_iterations = 60
+            self.mjw_model.opt.ccd_iterations = CCD_ITERATIONS
             self.mjw_data = mjw.put_data(
                 self.model,
                 self.data,

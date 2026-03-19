@@ -10,14 +10,13 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from tqdm import tqdm
 import tyro
-
-from judo.visualizers.visualizer import Visualizer
-
 from mpc_batch import run_mpc_batch
 from mpc_config import MPCTimers, PublicMPCConfig, decode_config, load_configs_from_json_data
-from mpc_setup import save_results_to_h5, setup_mpc
+from mpc_setup import clamp_for_mjwarp, save_results_to_h5, setup_mpc
+from tqdm import tqdm
+
+from judo.visualizers.visualizer import Visualizer
 
 
 def _load_json_config(config_path: Path) -> tuple[dict, Path]:
@@ -54,7 +53,17 @@ def run_mpc(config: PublicMPCConfig) -> None:
 
     json_configs, config_path = _load_json_config(config.config_path)
     task, optimizer, controller_cfg = load_configs_from_json_data(json_configs)
-    task.model.opt.density = 0  # disable fluid dynamics for mujoco_warp compatibility
+    clamp_for_mjwarp(task.model)
+
+    # Fail early if require_success is set but the task has no success() implementation
+    from judo.tasks.base import Task  # noqa: PLC0415
+
+    if config.require_success and type(task).success is Task.success:
+        raise ValueError(
+            f"Task '{json_configs['task']}' does not implement success(), "
+            f"so all trajectories will be discarded with --require-success (the default). "
+            f"Either add a success() method to the task or use --no-require-success."
+        )
 
     num_parallel = min(config.num_parallel, config.num_trajectories)
     sims, batched_controllers, size_data = setup_mpc(
@@ -74,7 +83,9 @@ def run_mpc(config: PublicMPCConfig) -> None:
         while len(all_results) < config.num_trajectories and total_attempted < max_attempts:
             batch_results = run_mpc_batch(sims, batched_controllers, config, size_data, timers, vis=vis)
             for result in batch_results:
-                if result["success"] and len(all_results) < config.num_trajectories:
+                if len(all_results) >= config.num_trajectories:
+                    break
+                if not config.require_success or result["success"]:
                     all_results.append(result)
                     pbar.update(1)
             total_attempted += len(batch_results)

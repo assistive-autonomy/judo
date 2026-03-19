@@ -54,8 +54,10 @@ class PublicMPCConfig:
     control_freq: float | None = None  # MPC control frequency in Hz. If None, use the controller config's frequency.
     store_rollouts: bool = True  # Store open loop control inputs and state trajectories.
     store_viapoints: bool = True  # Store open loop control of the best spline.
+    require_success: bool = True  # Only keep trajectories where task.success() returns True.
     visualize: bool = False
     locomotion_policy_path: Path = SPOT_LOCOMOTION_POLICY_PATH
+    check_nan: bool = False  # Check for NaN in mujoco_warp rollout outputs (for debugging).
 
 
 @dataclass
@@ -146,6 +148,7 @@ class MPCTimers:
 
     @classmethod
     def create(cls) -> "MPCTimers":
+        """Create a new set of MPC timers."""
         return cls(
             optimization=Timer("Opt", unit="ms"),
             sim_step=Timer("Sim", unit="ms"),
@@ -154,6 +157,7 @@ class MPCTimers:
         )
 
     def print_all(self) -> None:
+        """Print timing statistics for all MPC operations."""
         logging.info("=== Performance Statistics ===")
         self.optimization.print_stats(logging.info)
         self.sim_step.print_stats(logging.info)

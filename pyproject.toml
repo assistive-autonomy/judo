@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     "dora-utils",  # dora + qol utils for writing nodes
     "h5py",
-    "mujoco==3.4.0",
+    "mujoco>=3.5.0,<3.6",
     "numpy",
     "pillow",  # for displaying app logo
     "pycparser",
@@ -86,6 +86,7 @@ dev = [
     "pyright",
     "pytest",
     "pytest-cov",
+    "pytest-timeout",
     "pytest-xdist",
     "ruff",
     "twine",
@@ -232,7 +233,7 @@ python = "3.13.*"
 [tool.pixi.feature.mjwarp.dependencies]
 python = ">=3.11,<3.14"
 [tool.pixi.feature.mjwarp.target.linux-64.pypi-dependencies]
-mujoco_warp = "==0.0.2"
+mujoco_warp = ">=3.5.0,<3.6"
 onnx = "*"
 onnxruntime-gpu = ">=1.24"
 
@@ -241,6 +242,7 @@ default = { solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 dev = { features = ["dev", "docs"], solve-group = "default" }
 mjwarp = { features = ["mjwarp"], solve-group = "mjwarp" }
+dev-mjwarp = { features = ["dev", "mjwarp"], solve-group = "mjwarp" }
 py310 = { features = ["dev", "py310"], solve-group = "py310" }
 py311 = { features = ["dev", "py311"], solve-group = "py311" }
 py312 = { features = ["dev", "py312"], solve-group = "py312" }

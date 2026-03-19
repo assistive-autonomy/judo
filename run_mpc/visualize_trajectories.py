@@ -8,10 +8,11 @@ from typing import Optional
 import h5py
 import numpy as np
 import tyro
-from judo.tasks import get_registered_tasks
-from judo.visualizers.model import ViserMjModel
 from mujoco import MjData, mj_forward
 from viser import GuiEvent, ViserServer
+
+from judo.tasks import get_registered_tasks
+from judo.visualizers.model import ViserMjModel
 
 
 def decode_config(obj: dict) -> dict:
@@ -25,6 +26,7 @@ def decode_config(obj: dict) -> dict:
 
 
 def visualize_trajectory_hdf5_dataset(dataset_path: Path) -> None:
+    """Load and visualize trajectories from an HDF5 dataset."""
     with h5py.File(str(dataset_path), "r") as f:
         # Read task name from HDF5 attrs (preferred), with fallback to config file
         if "task" in f.attrs:
@@ -37,13 +39,18 @@ def visualize_trajectory_hdf5_dataset(dataset_path: Path) -> None:
 
         qpos_dataset = f["qpos"]
         trajectory_length_dataset = f["trajectory_length"]
+        goal_positions = np.array(f["goal_pos"]) if "goal_pos" in f else None
 
-        visualize_trajectory_batch(task_name, qpos_dataset, trajectory_length_dataset)
+        visualize_trajectory_batch(task_name, qpos_dataset, trajectory_length_dataset, goal_positions)
 
 
 def visualize_trajectory_batch(
-    task: str, qpos_batch: np.ndarray | h5py.Dataset, trajectory_lengths: Optional[np.ndarray | h5py.Dataset] = None
+    task: str,
+    qpos_batch: np.ndarray | h5py.Dataset,
+    trajectory_lengths: Optional[np.ndarray | h5py.Dataset] = None,
+    goal_positions: Optional[np.ndarray] = None,
 ) -> None:
+    """Visualize a batch of trajectories in viser."""
     server = ViserServer()
 
     registered_tasks = get_registered_tasks()
@@ -57,6 +64,17 @@ def visualize_trajectory_batch(
     task_instance.model = task_instance.spec.compile()
     task_instance.data = MjData(task_instance.model)
     viser_mjmodel = ViserMjModel(server, task_instance.spec)
+
+    # Render goal position marker if available
+    goal_handle = None
+    if goal_positions is not None:
+        goal = goal_positions[0]
+        goal_handle = server.scene.add_icosphere(
+            "/goal_marker",
+            radius=0.1,
+            color=(0, 255, 0),
+            position=(goal[0], goal[1], 0.0),
+        )
 
     # Create GUI elements for controlling visualizer.
     running = False
@@ -73,7 +91,7 @@ def visualize_trajectory_batch(
 
     @pause_button.on_click
     def cycle_pause_button_callback(_: GuiEvent) -> None:
-        """More info about GUI callbacks in viser: https://viser.studio/versions/0.2.7/examples/03_gui_callbacks"""
+        """Handle GUI callback."""
         cycle_pause_button()
 
     trajectory_slider = server.gui.add_slider(
@@ -94,7 +112,7 @@ def visualize_trajectory_batch(
 
     @trajectory_slider.on_update
     def trajectory_slider_on_update_callback(_: GuiEvent) -> None:
-        """More info about GUI callbacks in viser: https://viser.studio/versions/0.2.7/examples/03_gui_callbacks"""
+        """Handle GUI callback."""
         # Reset timestep to zero for new trajectory.
         timestep_slider.value = 0
         # Change timestep bounds.
@@ -102,10 +120,14 @@ def visualize_trajectory_batch(
             nonlocal curr_trajectory_length
             curr_trajectory_length = trajectory_lengths[trajectory_slider.value] - 1
             timestep_slider.max = curr_trajectory_length
+        # Update goal marker position for this trajectory
+        if goal_handle is not None and goal_positions is not None:
+            goal = goal_positions[trajectory_slider.value]
+            goal_handle.position = (goal[0], goal[1], 0.0)
 
     @timestep_slider.on_update
     def timestep_slider_on_update_callback(_: GuiEvent) -> None:
-        """More info about GUI callbacks in viser: https://viser.studio/versions/0.2.7/examples/03_gui_callbacks"""
+        """Handle GUI callback."""
         # Update the viser_mjmodel's data object
         qpos_value = qpos_batch[trajectory_slider.value, timestep_slider.value]
         task_instance.data.qpos[:] = qpos_value

@@ -8,6 +8,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 import warp as wp
+from mpc_config import PublicMPCConfig, SizeData, make_size_data
 
 from judo.controller import BatchedControllers as JudoBatchedController
 from judo.controller import ControllerConfig
@@ -18,12 +19,18 @@ from judo.simulation.policy_mj_simulation import PolicyMJSimulation
 from judo.tasks import Task as JudoTask
 from judo.utils.mjwarp_rollout_backend import MJWarpRolloutBackend
 
-from mpc_config import PublicMPCConfig, SizeData, make_size_data
+MJWARP_MIN_FRICTION = 0.01  # mujoco_warp minimum sliding friction; values below this cause NaN in contact solving
 
 
-def make_locomotion_controller(
-    use_spot: bool, policy_path: str | None, device: str
-) -> BatchedSpotLocomotion | None:
+def clamp_for_mjwarp(model: "mujoco.MjModel") -> None:
+    """Apply model fixups for mujoco_warp compatibility."""
+    # Disable fluid dynamics (not supported by mujoco_warp)
+    model.opt.density = 0
+    # Clamp geom friction to mujoco_warp minimum to avoid NaN in contact solving
+    np.maximum(model.geom_friction, MJWARP_MIN_FRICTION, out=model.geom_friction)
+
+
+def make_locomotion_controller(use_spot: bool, policy_path: str | None, device: str) -> BatchedSpotLocomotion | None:
     """Creates low-level locomotion controller if Spot task is used."""
     if not use_spot or policy_path is None:
         return None
@@ -54,8 +61,7 @@ def setup_mpc(
         else:
             sim = MJSimulation(init_task=json_configs["task"])
         sim.task.config = copy.deepcopy(task.config)
-        # Disable fluid dynamics for mujoco_warp compatibility
-        sim.task.model.opt.density = 0
+        clamp_for_mjwarp(sim.task.model)
         sims.append(sim)
 
     # Create shared GPU rollout backend for batched execution
@@ -66,6 +72,7 @@ def setup_mpc(
         num_problems=num_parallel,
         locomotion_controller=locomotion_controller,
         device=device,
+        check_nan=config.check_nan,
     )
     batched_controllers = JudoBatchedController(controller_cfg, task, optimizer, rollout_backend=rollout_backend)
     size_data = make_size_data(sims[0], batched_controllers.controllers[0], config)
@@ -178,6 +185,16 @@ def save_results_to_h5(
                 dtype="float64",
             )
 
+        # Store goal_pos per trajectory if present
+        has_goal = "goal_pos" in all_results[0]
+        if has_goal:
+            goal_dim = len(all_results[0]["goal_pos"])
+            goal_pos_dataset = f.create_dataset(
+                "goal_pos",
+                shape=(size_data.num_trajectories, goal_dim),
+                dtype="float64",
+            )
+
         # Store configuration data.
         f.attrs["config_path"] = str(config_path)
         f.attrs["num_parallel"] = num_parallel
@@ -197,3 +214,5 @@ def save_results_to_h5(
                 rollout_rewards_dataset[traj_idx] = result["rollout_rewards"]
             if config.store_viapoints:
                 control_viapoints_dataset[traj_idx] = result["control_viapoints"]
+            if has_goal:
+                goal_pos_dataset[traj_idx] = result["goal_pos"]

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+from mpc_config import MPCTimers, PublicMPCConfig, SizeData
 from tqdm import tqdm
 
 from judo.app.structs import MujocoState
@@ -16,18 +17,14 @@ from judo.simulation.mj_simulation import MJSimulation
 from judo.simulation.policy_mj_simulation import PolicyMJSimulation
 from judo.visualizers.visualizer import Visualizer
 
-from mpc_config import MPCTimers, PublicMPCConfig, SizeData
-
 
 def _get_previous_actions(sims: list[MJSimulation]) -> list[np.ndarray | None]:
     """Get previous actions from sims for hierarchical control sync."""
-    return [
-        sim.last_policy_output if isinstance(sim, PolicyMJSimulation) else None
-        for sim in sims
-    ]
+    return [sim.last_policy_output if isinstance(sim, PolicyMJSimulation) else None for sim in sims]
 
 
 def update_visualization(visualizer: Visualizer, sim_state: MujocoState, traces: np.ndarray) -> None:
+    """Update the viser visualization with current sim state and traces."""
     visualizer.data.xpos[:] = sim_state.xpos
     visualizer.data.xquat[:] = sim_state.xquat
     visualizer.viser_model.set_data(visualizer.data)
@@ -69,17 +66,23 @@ class _BatchStorage:
         if config.store_rollouts:
             storage.rollout_states = np.full(
                 (num_parallel, sd.max_num_mpc_steps, sd.num_rollouts, sd.num_timesteps, sd.nq + sd.nv),
-                np.nan, dtype="float64",
+                np.nan,
+                dtype="float64",
             )
             storage.rollout_controls = np.full(
                 (num_parallel, sd.max_num_mpc_steps, sd.num_rollouts, sd.num_timesteps, sd.nu),
-                np.nan, dtype="float64",
+                np.nan,
+                dtype="float64",
             )
             storage.rollout_rewards = np.full(
-                (num_parallel, sd.max_num_mpc_steps, sd.num_rollouts), -1, dtype="int",
+                (num_parallel, sd.max_num_mpc_steps, sd.num_rollouts),
+                -1,
+                dtype="int",
             )
             storage.control_timesteps = np.full(
-                (num_parallel, sd.max_num_mpc_steps), -1, dtype="int",
+                (num_parallel, sd.max_num_mpc_steps),
+                -1,
+                dtype="int",
             )
         return storage
 
@@ -205,4 +208,6 @@ def run_mpc_batch(
     results = storage.package_results(config.max_num_task_steps)
     for i, sim in enumerate(sims):
         results[i]["success"] = sim.task.success(sim.task.model, sim.task.data)
+        if hasattr(sim.task.config, "goal_pos"):
+            results[i]["goal_pos"] = sim.task.config.goal_pos.copy()
     return results

@@ -1,7 +1,5 @@
 # Copyright (c) 2025 Robotics and AI Institute LLC. All rights reserved.
 
-from __future__ import annotations
-
 import copy
 import warnings
 from dataclasses import dataclass
@@ -57,7 +55,7 @@ class Controller:
         controller_config: ControllerConfig,
         task: Task,
         optimizer: Optimizer,
-        rollout_backend: Literal["mujoco"] | MJWarpRolloutBackend = "mujoco",
+        rollout_backend: Literal["mujoco"] | "MJWarpRolloutBackend" = "mujoco",
     ) -> None:
         """Initialize the controller.
 
@@ -460,7 +458,7 @@ class BatchedControllers:
         controller_config: ControllerConfig,
         task: Task,
         optimizer: Optimizer,
-        rollout_backend: MJWarpRolloutBackend,
+        rollout_backend: "MJWarpRolloutBackend",
     ) -> None:
         """Initialize the batched controllers.
 
@@ -664,7 +662,7 @@ def make_controller(
     init_optimizer: str,
     task_registration_cfg: DictConfig | None = None,
     optimizer_registration_cfg: DictConfig | None = None,
-    rollout_backend: Literal["mujoco"] | MJWarpRolloutBackend = "mujoco",
+    rollout_backend: Literal["mujoco"] | "MJWarpRolloutBackend" = "mujoco",
 ) -> Controller:
     """Make a controller.
 

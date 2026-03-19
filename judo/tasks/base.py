@@ -110,7 +110,7 @@ class Task(ABC, Generic[ConfigT]):
 
     def success(self, model: MjModel, data: MjData, metadata: dict[str, Any] | None = None) -> bool:
         """Check if the task was completed successfully. Override in subclasses."""
-        return True
+        return False
 
     @property
     def physics_substeps(self) -> int:

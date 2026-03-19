@@ -112,10 +112,25 @@ MUJOCO_TO_ISAAC_INDICES_19 = [12, 0, 3, 6, 9, 13, 1, 4, 7, 10, 14, 2, 5, 8, 11, 
 
 # Default joint offsets for locomotion policy (Isaac order, 19 joints)
 LOCOMOTION_DEFAULT_JOINTS_OFFSET = (
-    0.0, 0.12, -0.12, 0.12, -0.12,
-    -0.9, 0.5, 0.5, 0.5, 0.5,
-    1.8, -1.0, -1.0, -1.0, -1.0,
-    0.0, -0.9, 0.0, -1.54,
+    0.0,
+    0.12,
+    -0.12,
+    0.12,
+    -0.12,
+    -0.9,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    1.8,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    0.0,
+    -0.9,
+    0.0,
+    -1.54,
 )
 
 # Default leg offsets for locomotion policy (Isaac order, 12 legs)
