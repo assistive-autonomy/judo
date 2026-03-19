@@ -49,12 +49,13 @@ dependencies = [
 [project.scripts]
 judo = "judo.cli:app"
 benchmark = "judo.cli:benchmark"
+run_mpc = "run_mpc.cli:main"
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["judo", "mujoco_extensions"]
+packages = ["judo", "mujoco_extensions", "run_mpc"]
 artifacts = ["mujoco_extensions/**/policy_rollout_pybind*.so", "judo/app/asset/*"]
 exclude = [
     "judo/models/meshes",
@@ -103,11 +104,10 @@ testpaths = [
 ]
 
 [tool.pyright]
-include = ["judo", "tests"]
+include = ["judo", "tests", "run_mpc"]
 exclude = [
     "**/__pycache__",
 ]
-extraPaths = ["run_mpc"]  # mpc_batch, mpc_config, mpc_setup are imported via sys.path at runtime
 defineConstant = { DEBUG = true }
 stubPath = "typings"
 
@@ -218,6 +218,7 @@ build = { cmd = "cmake --build mujoco_extensions/build -j8", depends-on = ["conf
 clean = { cmd = "rm -rf mujoco_extensions/build mujoco_extensions/policy_rollout/*.so", description = "Clean mujoco_extensions build artifacts" }
 upload-meshes = { cmd = "bash scripts/upload_meshes.sh", description = "Zip and upload meshes to latest GitHub release" }
 build-wheel = { cmd = "rm -rf dist && python -m build --wheel --outdir dist && bash scripts/repair_wheel.sh dist/*.whl wheelhouse \"\" $(python -c \"import sys; print(f'cp{sys.version_info[0]}{sys.version_info[1]}')\")", depends-on = ["clean", "build"], description = "Build manylinux wheel with auditwheel" }
+run_mpc = { cmd = "run_mpc", description = "Run batched MPC (pass args after --)" }
 
 [tool.pixi.activation.env]
 LD_LIBRARY_PATH = "$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"

@@ -37,11 +37,11 @@ def visualize_trajectory_hdf5_dataset(dataset_path: Path) -> None:
                 configs = json.load(config_f, object_hook=decode_config)
             task_name = configs["task"]
 
-        qpos_dataset = f["qpos"]
-        trajectory_length_dataset = f["trajectory_length"]
+        qpos_dataset: h5py.Dataset = f["qpos"]  # type: ignore[assignment]
+        trajectory_length_dataset: h5py.Dataset = f["trajectory_length"]  # type: ignore[assignment]
         goal_positions = np.array(f["goal_pos"]) if "goal_pos" in f else None
 
-        visualize_trajectory_batch(task_name, qpos_dataset, trajectory_length_dataset, goal_positions)
+        visualize_trajectory_batch(str(task_name), qpos_dataset, trajectory_length_dataset, goal_positions)
 
 
 def visualize_trajectory_batch(

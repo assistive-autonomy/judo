@@ -2,7 +2,7 @@
 
 """Entry point for running batched MPC and saving trajectories to HDF5.
 
-Usage: python scripts/run_mpc --config-path <path_to_config.json>
+Usage: python -m run_mpc --config-path <path_to_config.json>
 """
 
 import json
@@ -10,13 +10,12 @@ import logging
 from pathlib import Path
 
 import numpy as np
-import tyro
-from mpc_batch import run_mpc_batch
-from mpc_config import MPCTimers, PublicMPCConfig, decode_config, load_configs_from_json_data
-from mpc_setup import clamp_for_mjwarp, save_results_to_h5, setup_mpc
 from tqdm import tqdm
 
 from judo.visualizers.visualizer import Visualizer
+from run_mpc.mpc_batch import run_mpc_batch
+from run_mpc.mpc_config import MPCTimers, PublicMPCConfig, decode_config, load_configs_from_json_data
+from run_mpc.mpc_setup import clamp_for_mjwarp, save_results_to_h5, setup_mpc
 
 
 def _load_json_config(config_path: Path) -> tuple[dict, Path]:
@@ -112,5 +111,8 @@ def run_mpc(config: PublicMPCConfig) -> None:
     batched_controllers.print_timer_stats()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """CLI entry point for run-mpc."""
+    import tyro  # noqa: PLC0415
+
     run_mpc(tyro.cli(PublicMPCConfig))

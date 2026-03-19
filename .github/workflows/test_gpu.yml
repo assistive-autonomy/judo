@@ -1,10 +1,8 @@
 name: Test (GPU / MJWarp)
 
+# Disabled: no GPU runners available yet. Run tests manually (see run_mpc/README.md).
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch: {}
 
 permissions:
   contents: read

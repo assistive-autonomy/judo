@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from mpc_config import MPCTimers, PublicMPCConfig, SizeData
 from tqdm import tqdm
 
 from judo.app.structs import MujocoState
@@ -16,6 +15,7 @@ from judo.controller import Controller as JudoController
 from judo.simulation.mj_simulation import MJSimulation
 from judo.simulation.policy_mj_simulation import PolicyMJSimulation
 from judo.visualizers.visualizer import Visualizer
+from run_mpc.mpc_config import MPCTimers, PublicMPCConfig, SizeData
 
 
 def _get_previous_actions(sims: list[MJSimulation]) -> list[np.ndarray | None]:

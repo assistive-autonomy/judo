@@ -8,7 +8,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 import warp as wp
-from mpc_config import PublicMPCConfig, SizeData, make_size_data
+from mujoco import MjModel
 
 from judo.controller import BatchedControllers as JudoBatchedController
 from judo.controller import ControllerConfig
@@ -18,11 +18,12 @@ from judo.simulation.mj_simulation import MJSimulation
 from judo.simulation.policy_mj_simulation import PolicyMJSimulation
 from judo.tasks import Task as JudoTask
 from judo.utils.mjwarp_rollout_backend import MJWarpRolloutBackend
+from run_mpc.mpc_config import PublicMPCConfig, SizeData, make_size_data
 
 MJWARP_MIN_FRICTION = 0.01  # mujoco_warp minimum sliding friction; values below this cause NaN in contact solving
 
 
-def clamp_for_mjwarp(model: "mujoco.MjModel") -> None:
+def clamp_for_mjwarp(model: MjModel) -> None:
     """Apply model fixups for mujoco_warp compatibility."""
     # Disable fluid dynamics (not supported by mujoco_warp)
     model.opt.density = 0
@@ -188,7 +189,7 @@ def save_results_to_h5(
         # Store goal_pos per trajectory if present
         has_goal = "goal_pos" in all_results[0]
         if has_goal:
-            goal_dim = len(all_results[0]["goal_pos"])
+            goal_dim = len(np.asarray(all_results[0]["goal_pos"]))
             goal_pos_dataset = f.create_dataset(
                 "goal_pos",
                 shape=(size_data.num_trajectories, goal_dim),
@@ -209,10 +210,10 @@ def save_results_to_h5(
             sensor_dataset[traj_idx] = result["sensor"]
             reward_dataset[traj_idx] = result["reward"]
             if config.store_rollouts:
-                rollout_states_dataset[traj_idx] = result["rollout_states"]
-                rollout_controls_dataset[traj_idx] = result["rollout_controls"]
-                rollout_rewards_dataset[traj_idx] = result["rollout_rewards"]
+                rollout_states_dataset[traj_idx] = result["rollout_states"]  # pyright: ignore[reportPossiblyUnboundVariable]
+                rollout_controls_dataset[traj_idx] = result["rollout_controls"]  # pyright: ignore[reportPossiblyUnboundVariable]
+                rollout_rewards_dataset[traj_idx] = result["rollout_rewards"]  # pyright: ignore[reportPossiblyUnboundVariable]
             if config.store_viapoints:
-                control_viapoints_dataset[traj_idx] = result["control_viapoints"]
+                control_viapoints_dataset[traj_idx] = result["control_viapoints"]  # pyright: ignore[reportPossiblyUnboundVariable]
             if has_goal:
-                goal_pos_dataset[traj_idx] = result["goal_pos"]
+                goal_pos_dataset[traj_idx] = result["goal_pos"]  # pyright: ignore[reportPossiblyUnboundVariable]

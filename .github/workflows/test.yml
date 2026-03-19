@@ -62,4 +62,4 @@ jobs:
 
       # ── Tests ───────────────────────────────────────────────────────
       - name: Run tests
-        run: pixi run -e ${{ matrix.pixi-env }} pytest -rsx --ignore=tests/test_run_mpc.py
+        run: pixi run -e ${{ matrix.pixi-env }} pytest -rsx

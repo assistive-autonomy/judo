@@ -3,7 +3,6 @@
 """End-to-end tests for run_mpc: config loading, MPC execution, data collection, and H5 output."""
 
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -11,12 +10,19 @@ import h5py
 import numpy as np
 import pytest
 
-# Add run_mpc to path so we can import its modules directly (they use relative imports)
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "run_mpc"))
+from run_mpc.mpc_batch import run_mpc_batch
+from run_mpc.mpc_config import MPCTimers, PublicMPCConfig, decode_config, load_configs_from_json_data
+from run_mpc.mpc_setup import clamp_for_mjwarp, save_results_to_h5, setup_mpc
 
-from mpc_batch import run_mpc_batch
-from mpc_config import MPCTimers, PublicMPCConfig, decode_config, load_configs_from_json_data
-from mpc_setup import clamp_for_mjwarp, save_results_to_h5, setup_mpc
+try:
+    import warp as wp
+
+    _has_gpu = wp.is_cuda_available()
+except ImportError:
+    _has_gpu = False
+
+# All tests in this module require a GPU (mujoco_warp backend)
+pytestmark = pytest.mark.skipif(not _has_gpu, reason="requires CUDA GPU (warp)")
 
 CONFIGS_DIR = Path(__file__).resolve().parent.parent / "run_mpc" / "configs"
 
