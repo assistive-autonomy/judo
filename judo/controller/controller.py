@@ -55,7 +55,7 @@ class Controller:
         controller_config: ControllerConfig,
         task: Task,
         optimizer: Optimizer,
-        rollout_backend: Literal["mujoco"] | "MJWarpRolloutBackend" = "mujoco",
+        rollout_backend: "Literal['mujoco'] | MJWarpRolloutBackend" = "mujoco",
     ) -> None:
         """Initialize the controller.
 
@@ -662,7 +662,7 @@ def make_controller(
     init_optimizer: str,
     task_registration_cfg: DictConfig | None = None,
     optimizer_registration_cfg: DictConfig | None = None,
-    rollout_backend: Literal["mujoco"] | "MJWarpRolloutBackend" = "mujoco",
+    rollout_backend: "Literal['mujoco'] | MJWarpRolloutBackend" = "mujoco",
 ) -> Controller:
     """Make a controller.
 

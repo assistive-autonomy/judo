@@ -107,12 +107,13 @@ include = ["judo", "tests"]
 exclude = [
     "**/__pycache__",
 ]
+extraPaths = ["run_mpc"]  # mpc_batch, mpc_config, mpc_setup are imported via sys.path at runtime
 defineConstant = { DEBUG = true }
 stubPath = "typings"
 
-reportMissingImports = "warning"
 reportMissingTypeStubs = false
 reportPrivateImportUsage = false
+
 
 pythonVersion = "3.13"
 pythonPlatform = "Linux"

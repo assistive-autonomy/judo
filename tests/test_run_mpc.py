@@ -155,15 +155,22 @@ class TestH5Output:
         num_saved = len(mpc_run["results"])
 
         with h5py.File(str(h5_path), "r") as f:
-            assert f["qpos"].shape == (num_saved, MAX_NUM_TASK_STEPS, task.model.nq)
-            assert f["qvel"].shape == (num_saved, MAX_NUM_TASK_STEPS, task.model.nv)
-            assert f["control"].shape == (num_saved, MAX_NUM_TASK_STEPS, mpc_run["expected_nu"])
-            assert f["sensor"].shape == (num_saved, MAX_NUM_TASK_STEPS, task.model.nsensordata)
-            assert f["reward"].shape == (num_saved, MAX_NUM_TASK_STEPS)
-            assert f["trajectory_length"].shape == (num_saved,)
+            qpos_ds: h5py.Dataset = f["qpos"]  # type: ignore[assignment]
+            qvel_ds: h5py.Dataset = f["qvel"]  # type: ignore[assignment]
+            control_ds: h5py.Dataset = f["control"]  # type: ignore[assignment]
+            sensor_ds: h5py.Dataset = f["sensor"]  # type: ignore[assignment]
+            reward_ds: h5py.Dataset = f["reward"]  # type: ignore[assignment]
+            traj_len_ds: h5py.Dataset = f["trajectory_length"]  # type: ignore[assignment]
+
+            assert qpos_ds.shape == (num_saved, MAX_NUM_TASK_STEPS, task.model.nq)
+            assert qvel_ds.shape == (num_saved, MAX_NUM_TASK_STEPS, task.model.nv)
+            assert control_ds.shape == (num_saved, MAX_NUM_TASK_STEPS, mpc_run["expected_nu"])
+            assert sensor_ds.shape == (num_saved, MAX_NUM_TASK_STEPS, task.model.nsensordata)
+            assert reward_ds.shape == (num_saved, MAX_NUM_TASK_STEPS)
+            assert traj_len_ds.shape == (num_saved,)
 
             assert "rollout_states" in f
             assert "control_viapoints" in f
             assert "task" in f.attrs
 
-            assert np.any(np.isfinite(f["qpos"][0]))
+            assert np.any(np.isfinite(qpos_ds[0]))

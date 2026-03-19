@@ -20,13 +20,13 @@ from judo.tasks.spot.spot_constants import (
 
 @wp.kernel
 def build_observation_kernel(
-    qpos: wp.array2d(dtype=wp.float32),
-    qvel: wp.array2d(dtype=wp.float32),
-    cmd: wp.array2d(dtype=wp.float32),
-    prev_actions: wp.array2d(dtype=wp.float32),
-    joints_offset: wp.array(dtype=wp.float32),
-    mj_to_isaac: wp.array(dtype=wp.int32),
-    obs: wp.array2d(dtype=wp.float32),
+    qpos: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    qvel: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    cmd: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    prev_actions: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    joints_offset: wp.array(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    mj_to_isaac: wp.array(dtype=wp.int32),  # pyright: ignore[reportInvalidTypeForm]
+    obs: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
 ) -> None:
     """Build 84-dim observation from state, command, and previous actions.
 
@@ -97,12 +97,12 @@ def build_observation_kernel(
 
 @wp.kernel
 def compute_targets_kernel(
-    actions: wp.array2d(dtype=wp.float32),
-    cmd: wp.array2d(dtype=wp.float32),
-    legs_offset: wp.array(dtype=wp.float32),
-    isaac_to_mj: wp.array(dtype=wp.int32),
+    actions: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    cmd: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    legs_offset: wp.array(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    isaac_to_mj: wp.array(dtype=wp.int32),  # pyright: ignore[reportInvalidTypeForm]
     action_scale: float,
-    target_q: wp.array2d(dtype=wp.float32),
+    target_q: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
 ) -> None:
     """Post-process policy actions into 19-dim target_q.
 

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   test-mjwarp:
-    runs-on: [self-hosted, gpu]
+    runs-on: k8s-n1-standard-16-1x-t4-dockerless
     timeout-minutes: 30
 
     steps:

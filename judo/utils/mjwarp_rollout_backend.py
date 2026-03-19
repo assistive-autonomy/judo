@@ -23,8 +23,8 @@ DEVICE = "cuda:0"
 
 @wp.kernel
 def _copy_target_to_ctrl(
-    target_q: wp.array2d(dtype=wp.float32),
-    ctrl: wp.array2d(dtype=wp.float32),
+    target_q: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
+    ctrl: wp.array2d(dtype=wp.float32),  # pyright: ignore[reportInvalidTypeForm]
     n_controlled: int,
 ) -> None:
     """Copy target_q into the first n_controlled columns of ctrl."""
@@ -180,9 +180,10 @@ class MJWarpRolloutBackend(RolloutBackend):
         out_qvel_wp = wp.zeros((num_worlds, horizon, nv), dtype=wp.float32)
         out_sensors_wp = wp.zeros((num_worlds, horizon, nsensordata), dtype=wp.float32)
 
-        wp.copy(self.mjw_data.time, full_states_wp[:, 0])
-        wp.copy(self.mjw_data.qpos, full_states_wp[:, 1 : nq + 1])
-        wp.copy(self.mjw_data.qvel, full_states_wp[:, 1 + nq : nq + nv + 1])
+        # warp stubs type array slices as indexedarray, but wp.copy accepts them at runtime
+        wp.copy(self.mjw_data.time, full_states_wp[:, 0])  # pyright: ignore[reportArgumentType]
+        wp.copy(self.mjw_data.qpos, full_states_wp[:, 1 : nq + 1])  # pyright: ignore[reportArgumentType]
+        wp.copy(self.mjw_data.qvel, full_states_wp[:, 1 + nq : nq + nv + 1])  # pyright: ignore[reportArgumentType]
         wp.synchronize()
         self.timer_cpu_to_gpu.toc()
 
@@ -260,11 +261,11 @@ class MJWarpRolloutBackend(RolloutBackend):
         Pipelines all GPU operations with a single sync at the end (done by caller).
         """
         for t in range(horizon):
-            wp.copy(self.mjw_data.ctrl, controls_wp[:, t, :])
-            wp.capture_launch(self.mjw_step_graph)
-            wp.copy(out_qpos_wp[:, t, :], self.mjw_data.qpos)
-            wp.copy(out_qvel_wp[:, t, :], self.mjw_data.qvel)
-            wp.copy(out_sensors_wp[:, t, :], self.mjw_data.sensordata)
+            wp.copy(self.mjw_data.ctrl, controls_wp[:, t, :])  # pyright: ignore[reportArgumentType]
+            wp.capture_launch(self.mjw_step_graph)  # pyright: ignore[reportArgumentType]
+            wp.copy(out_qpos_wp[:, t, :], self.mjw_data.qpos)  # pyright: ignore[reportArgumentType]
+            wp.copy(out_qvel_wp[:, t, :], self.mjw_data.qvel)  # pyright: ignore[reportArgumentType]
+            wp.copy(out_sensors_wp[:, t, :], self.mjw_data.sensordata)  # pyright: ignore[reportArgumentType]
 
     def _rollout_with_locomotion_policy(
         self,
@@ -294,7 +295,10 @@ class MJWarpRolloutBackend(RolloutBackend):
             # Update locomotion policy at the policy's target frequency
             if target_q_wp is None or self.global_step_counter % self.policy_decimation == 0:
                 target_q_wp, previous_actions_wp = self.locomotion_controller.compute_batch(
-                    cmd_wp, qpos_wp, qvel_wp, previous_actions_wp
+                    cmd_wp,  # pyright: ignore[reportArgumentType]
+                    qpos_wp,
+                    qvel_wp,
+                    previous_actions_wp,
                 )
 
             # Copy target_q into ctrl (pad remaining actuators with zeros)
@@ -307,15 +311,15 @@ class MJWarpRolloutBackend(RolloutBackend):
             )
             wp.copy(self.mjw_data.ctrl, ctrl_wp)
 
-            wp.capture_launch(self.mjw_step_graph)
+            wp.capture_launch(self.mjw_step_graph)  # pyright: ignore[reportArgumentType]
 
             self.global_step_counter += 1
 
             wp.copy(qpos_wp, self.mjw_data.qpos)
             wp.copy(qvel_wp, self.mjw_data.qvel)
-            wp.copy(out_qpos_wp[:, t, :], self.mjw_data.qpos)
-            wp.copy(out_qvel_wp[:, t, :], self.mjw_data.qvel)
-            wp.copy(out_sensors_wp[:, t, :], self.mjw_data.sensordata)
+            wp.copy(out_qpos_wp[:, t, :], self.mjw_data.qpos)  # pyright: ignore[reportArgumentType]
+            wp.copy(out_qvel_wp[:, t, :], self.mjw_data.qvel)  # pyright: ignore[reportArgumentType]
+            wp.copy(out_sensors_wp[:, t, :], self.mjw_data.sensordata)  # pyright: ignore[reportArgumentType]
 
         return previous_actions_wp
 
