@@ -6,23 +6,25 @@ import json
 from pathlib import Path
 from typing import Any
 
-import h5py
 import numpy as np
 import pytest
 
-from run_mpc.mpc_batch import run_mpc_batch
-from run_mpc.mpc_config import MPCTimers, PublicMPCConfig, decode_config, load_configs_from_json_data
-from run_mpc.mpc_setup import clamp_for_mjwarp, save_results_to_h5, setup_mpc
-
 try:
+    import h5py
     import warp as wp
+
+    from run_mpc.mpc_batch import run_mpc_batch
+    from run_mpc.mpc_config import MPCTimers, PublicMPCConfig, decode_config, load_configs_from_json_data
+    from run_mpc.mpc_setup import clamp_for_mjwarp, save_results_to_h5, setup_mpc
 
     _has_gpu = wp.is_cuda_available()
 except ImportError:
     _has_gpu = False
 
-# All tests in this module require a GPU (mujoco_warp backend)
-pytestmark = pytest.mark.skipif(not _has_gpu, reason="requires CUDA GPU (warp)")
+# Skip the entire module at collection time if warp/GPU is unavailable,
+# since run_mpc imports warp at module level.
+if not _has_gpu:
+    pytest.skip("requires CUDA GPU (warp)", allow_module_level=True)
 
 CONFIGS_DIR = Path(__file__).resolve().parent.parent / "run_mpc" / "configs"
 
