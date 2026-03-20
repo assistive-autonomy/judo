@@ -1,15 +1,17 @@
 name: Test (GPU / MJWarp)
 
-# Disabled: no GPU runners available yet. Run tests manually (see run_mpc/README.md).
 on:
-  workflow_dispatch: {}
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   test-mjwarp:
-    runs-on: k8s-n1-standard-16-1x-t4-dockerless
+    runs-on: github-gpu-runner
     timeout-minutes: 30
 
     steps:
