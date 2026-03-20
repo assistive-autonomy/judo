@@ -23,10 +23,14 @@ class ControllerNode(DoraNode):
         max_workers: int | None = None,
         task_registration_cfg: DictConfig | None = None,
         optimizer_registration_cfg: DictConfig | None = None,
+        controller_cls: type[Controller] | None = None,
+        make_controller_fn=None,
     ) -> None:
         """Initialize the controller node."""
         super().__init__(node_id=node_id, max_workers=max_workers)
-        self.controller = make_controller(
+        self._controller_cls = controller_cls or Controller
+        self._make_controller_fn = make_controller_fn or make_controller
+        self.controller = self._make_controller_fn(
             init_task=init_task,
             init_optimizer=init_optimizer,
             task_registration_cfg=task_registration_cfg,
@@ -45,9 +49,13 @@ class ControllerNode(DoraNode):
             task_cls, _ = task_entry
             with self.lock:
                 task = task_cls()
-                optimizer = self.controller.optimizer_cls(self.controller.optimizer_config_cls(), task.nu)
-                self.controller = Controller(
-                    controller_config=self.controller.controller_cfg,
+                controller_config = type(self.controller.controller_cfg)()
+                controller_config.set_override(new_task)
+                optimizer_config = self.controller.optimizer_config_cls()
+                optimizer_config.set_override(new_task)
+                optimizer = self.controller.optimizer_cls(optimizer_config, task.nu)
+                self.controller = self._controller_cls(
+                    controller_config=controller_config,
                     task=task,
                     optimizer=optimizer,
                 )
@@ -75,6 +83,7 @@ class ControllerNode(DoraNode):
         if optimizer_entry is not None:
             optimizer_cls, optimizer_config_cls = optimizer_entry
             optimizer_config = optimizer_config_cls()
+            optimizer_config.set_override(self.controller.task.name)
             optimizer = optimizer_cls(optimizer_config, self.controller.task.nu)
             with self.lock:
                 self.controller.optimizer = optimizer

@@ -9,6 +9,7 @@ from omegaconf import DictConfig
 from viser import GuiFolderHandle, GuiImageHandle, GuiInputHandle, IcosphereHandle, MeshHandle
 
 from judo.app.structs import MujocoState
+from judo.tasks import Task, TaskConfig
 from judo.visualizers.visualizer import Visualizer
 
 ElementType = GuiImageHandle | GuiInputHandle | GuiFolderHandle | MeshHandle | IcosphereHandle
@@ -29,6 +30,7 @@ class VisualizationNode(DoraNode):
         optimizer_override_cfg: DictConfig | None = None,
         sim_pause_button: bool = True,
         geom_exclude_substring: str = "collision",
+        available_tasks: dict[str, tuple[type[Task], type[TaskConfig]]] | None = None,
     ) -> None:
         """Initialize the visualization node."""
         super().__init__(node_id=node_id, max_workers=max_workers)
@@ -41,6 +43,7 @@ class VisualizationNode(DoraNode):
             optimizer_override_cfg=optimizer_override_cfg,
             sim_pause_button=sim_pause_button,
             geom_exclude_substring=geom_exclude_substring,
+            available_tasks=available_tasks,
         )
 
     def write_sim_pause(self) -> None:

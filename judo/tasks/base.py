@@ -25,6 +25,7 @@ class Task(ABC, Generic[ConfigT]):
     """Task definition."""
 
     config_t: type[ConfigT]
+    name: str
 
     def __init__(self, model_path: Path | str = "", sim_model_path: Path | str | None = None) -> None:
         """Initialize the Mujoco task."""
