@@ -51,6 +51,7 @@ class Controller:
         task: Task,
         optimizer: Optimizer,
         rollout_backend: Literal["mujoco"] = "mujoco",
+        custom_rollout_backends: dict[str, type] | None = None,
     ) -> None:
         """Initialize the controller.
 
@@ -59,20 +60,30 @@ class Controller:
             task: The task to use.
             optimizer: The optimizer to use.
             rollout_backend: The backend to use for rollouts. Currently only "mujoco" is supported.
+            custom_rollout_backends: Optional mapping of backend names to backend classes.
+                If the task's ``default_backend`` matches a key, that class is instantiated
+                with ``model`` and ``num_threads`` keyword arguments.
         """
         self._controller_cfg = controller_config
         self.task = task
         self.optimizer = optimizer
+        self._custom_rollout_backends = custom_rollout_backends or {}
 
         self.available_optimizers = get_registered_optimizers()
         self.available_tasks = get_registered_tasks()
 
         self.model = self.task.model
 
-        # Initialize rollout backend (auto-select policy backend if task requires it)
-        if self.task.uses_locomotion_policy:
+        # Initialize rollout backend
+        default_backend = getattr(self.task, "default_backend", None)
+        if default_backend and default_backend in self._custom_rollout_backends:
+            self.rollout_backend: RolloutBackend = self._custom_rollout_backends[default_backend](
+                model=self.model,
+                num_threads=self.optimizer_cfg.num_rollouts,
+            )
+        elif self.task.uses_locomotion_policy:
             assert self.task.locomotion_policy_path is not None
-            self.rollout_backend: RolloutBackend = PolicyMJRolloutBackend(
+            self.rollout_backend = PolicyMJRolloutBackend(
                 model=self.model,
                 num_threads=self.optimizer_cfg.num_rollouts,
                 policy_path=self.task.locomotion_policy_path,
@@ -376,7 +387,7 @@ class Controller:
             action_normalizer_kwargs["max"] = self.task.actuator_ctrlrange[:, 1]
         elif self.action_normalizer_type == "running":
             action_normalizer_kwargs["init_std"] = 1.0  # TODO(yunhai): make this configurable
-        return make_normalizer(self.action_normalizer_type, self.model.nu, **action_normalizer_kwargs)
+        return make_normalizer(self.action_normalizer_type, self.task.nu, **action_normalizer_kwargs)
 
 
 def make_spline(times: np.ndarray, controls: np.ndarray, spline_order: str) -> interp1d:
@@ -407,6 +418,8 @@ def make_controller(
     task_registration_cfg: DictConfig | None = None,
     optimizer_registration_cfg: DictConfig | None = None,
     rollout_backend: Literal["mujoco"] = "mujoco",
+    controller_cls: type[Controller] | None = None,
+    **controller_kwargs,
 ) -> Controller:
     """Make a controller."""
     available_optimizers = get_registered_optimizers()
@@ -434,9 +447,11 @@ def make_controller(
     controller_cfg = ControllerConfig()
     controller_cfg.set_override(init_task)
 
-    return Controller(
+    cls = controller_cls or Controller
+    return cls(
         controller_config=controller_cfg,
         task=task,
         optimizer=optimizer,
         rollout_backend=rollout_backend,
+        **controller_kwargs,
     )

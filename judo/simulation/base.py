@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
+from judo.app.structs import MujocoState
 from judo.app.utils import register_tasks_from_cfg
 from judo.tasks import get_registered_tasks
 from judo.tasks.base import Task
@@ -54,6 +55,20 @@ class Simulation(ABC):
         self.paused = not self.paused
 
     @property
-    @abstractmethod
+    def sim_state(self) -> MujocoState:
+        """Returns the current simulation state."""
+        return MujocoState(
+            time=self.task.data.time,
+            qpos=self.task.data.qpos,
+            qvel=self.task.data.qvel,
+            xpos=self.task.data.xpos,
+            xquat=self.task.data.xquat,
+            mocap_pos=self.task.data.mocap_pos,
+            mocap_quat=self.task.data.mocap_quat,
+            sim_metadata=self.task.get_sim_metadata(),
+        )
+
+    @property
     def timestep(self) -> float:
         """Timestep the simulation expects to run at."""
+        return self.task.dt

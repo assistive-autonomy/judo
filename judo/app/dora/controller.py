@@ -40,28 +40,27 @@ class ControllerNode(DoraNode):
         self.write_controls()
         self.lock = Lock()
 
+    def _current_optimizer_name(self) -> str:
+        """Look up the name of the current optimizer from the registry."""
+        for name, (cls, _) in self.controller.available_optimizers.items():
+            if isinstance(self.controller.optimizer, cls):
+                return name
+        return "cem"
+
     @on_event("INPUT", "task")
     def update_task(self, event: dict) -> None:
         """Updates the task type."""
         new_task = event["value"].to_numpy(zero_copy_only=False)[0]
         task_entry = self.controller.available_tasks.get(new_task)
-        if task_entry is not None:
-            task_cls, _ = task_entry
-            with self.lock:
-                task = task_cls()
-                controller_config = type(self.controller.controller_cfg)()
-                controller_config.set_override(new_task)
-                optimizer_config = self.controller.optimizer_config_cls()
-                optimizer_config.set_override(new_task)
-                optimizer = self.controller.optimizer_cls(optimizer_config, task.nu)
-                self.controller = self._controller_cls(
-                    controller_config=controller_config,
-                    task=task,
-                    optimizer=optimizer,
-                )
-                self.write_controls()
-        else:
+        if task_entry is None:
             raise ValueError(f"Task {new_task} not found in task registry.")
+
+        with self.lock:
+            self.controller = self._make_controller_fn(
+                init_task=new_task,
+                init_optimizer=self._current_optimizer_name(),
+            )
+            self.write_controls()
 
     @on_event("INPUT", "task_reset")
     def reset_task(self, event: dict) -> None:
