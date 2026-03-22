@@ -12,6 +12,13 @@ from mujoco.rollout import Rollout
 from judo.utils.rollout_backend import RolloutBackend
 
 
+def make_model_data_pairs(model: MjModel, num_pairs: int) -> tuple[list[MjModel], list[MjData]]:
+    """Create model/data pairs for mujoco threaded rollout."""
+    models = [deepcopy(model) for _ in range(num_pairs)]
+    datas = [MjData(m) for m in models]
+    return models, datas
+
+
 class MJRolloutBackend(RolloutBackend):
     """Backend for conducting multithreaded rollouts using standard MuJoCo.
 
@@ -32,15 +39,8 @@ class MJRolloutBackend(RolloutBackend):
         self.num_threads = num_threads
         self.model = model
 
-        self._model_data_pairs = self._make_model_data_pairs(model, num_threads)
+        self._models, self._datas = make_model_data_pairs(model, num_threads)
         self._rollout_obj = Rollout(nthread=num_threads)
-
-    @staticmethod
-    def _make_model_data_pairs(model: MjModel, num_pairs: int) -> list[tuple[MjModel, MjData]]:
-        """Create model/data pairs for mujoco threaded rollout."""
-        models = [deepcopy(model) for _ in range(num_pairs)]
-        datas = [MjData(m) for m in models]
-        return list(zip(models, datas, strict=True))
 
     def rollout(
         self,
@@ -64,16 +64,12 @@ class MJRolloutBackend(RolloutBackend):
         if x0.ndim == 1:
             x0 = np.tile(x0, (self.num_threads, 1))
 
-        ms, ds = zip(*self._model_data_pairs, strict=True)
-        ms = list(ms)
-        ds = list(ds)
-
-        nq = ms[0].nq
-        nv = ms[0].nv
-        nu = ms[0].nu
+        nq = self._models[0].nq
+        nv = self._models[0].nv
+        nu = self._models[0].nu
 
         # Prepend time to batched x0
-        full_states = np.concatenate([time.time() * np.ones((len(ms), 1)), x0], axis=-1)
+        full_states = np.concatenate([time.time() * np.ones((len(self._models), 1)), x0], axis=-1)
 
         assert full_states.shape[-1] == nq + nv + 1
         assert full_states.ndim == 2
@@ -81,7 +77,7 @@ class MJRolloutBackend(RolloutBackend):
         assert controls.shape[-1] == nu
         assert controls.shape[0] == full_states.shape[0]
 
-        _states, _sensors = self._rollout_obj.rollout(ms, ds, full_states, controls)
+        _states, _sensors = self._rollout_obj.rollout(self._models, self._datas, full_states, controls)
 
         out_states = np.array(_states)[..., 1:]  # Remove time from state
         out_sensors = np.array(_sensors)
@@ -97,5 +93,5 @@ class MJRolloutBackend(RolloutBackend):
         """
         self.num_threads = num_threads
         self._rollout_obj.close()
-        self._model_data_pairs = self._make_model_data_pairs(self.model, num_threads)
+        self._models, self._datas = make_model_data_pairs(self.model, num_threads)
         self._rollout_obj = Rollout(nthread=num_threads)
