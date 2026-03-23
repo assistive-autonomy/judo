@@ -23,12 +23,12 @@ from run_mpc.mpc_config import PublicMPCConfig, SizeData, make_size_data
 MJWARP_MIN_FRICTION = 0.01  # mujoco_warp minimum sliding friction; values below this cause NaN in contact solving
 
 
-def clamp_for_mjwarp(model: MjModel) -> None:
+def clamp_for_mjwarp(model: MjModel, min_friction: float = MJWARP_MIN_FRICTION) -> None:
     """Apply model fixups for mujoco_warp compatibility."""
     # Disable fluid dynamics (not supported by mujoco_warp)
     model.opt.density = 0
     # Clamp geom friction to mujoco_warp minimum to avoid NaN in contact solving
-    np.maximum(model.geom_friction, MJWARP_MIN_FRICTION, out=model.geom_friction)
+    np.maximum(model.geom_friction, min_friction, out=model.geom_friction)
 
 
 def make_locomotion_controller(use_spot: bool, policy_path: str | None, device: str) -> BatchedSpotLocomotion | None:
