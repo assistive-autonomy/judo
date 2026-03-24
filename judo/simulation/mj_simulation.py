@@ -21,11 +21,20 @@ class MJSimulation(Simulation):
         init_task: str = "spot_base",
         task_registration_cfg: DictConfig | None = None,
     ) -> None:
-        """Initialize the MuJoCo simulation."""
+        """Initialize the MuJoCo simulation.
+
+        Args:
+            init_task: Name of the task to initialize.
+            task_registration_cfg: Optional task registration configuration.
+        """
         super().__init__(init_task=init_task, task_registration_cfg=task_registration_cfg)
 
     def step(self, command: np.ndarray) -> None:
-        """Step the simulation forward."""
+        """Step the simulation forward.
+
+        Args:
+            command: Control command for this timestep.
+        """
         if self.paused:
             return
 
