@@ -8,12 +8,12 @@ import numpy as np
 import pytest
 
 from judo.tasks.spot import (
-    SpotBase,
     SpotBoxPush,
     SpotNavigate,
     SpotTireRoll,
     SpotTireUpright,
 )
+from judo.tasks.spot.spot_base import SpotBase
 
 # (TaskClass, expected_nu)
 # nu depends on use_arm, use_gripper, use_legs, use_torso:

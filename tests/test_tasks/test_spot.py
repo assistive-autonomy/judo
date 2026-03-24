@@ -4,7 +4,8 @@ from typing import Callable
 
 import numpy as np
 
-from judo.tasks.spot import SpotBase, SpotTireUpright
+from judo.tasks.spot import SpotTireUpright
+from judo.tasks.spot.spot_base import SpotBase
 
 
 def test_spot_base_init() -> None:

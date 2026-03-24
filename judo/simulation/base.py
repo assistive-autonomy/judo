@@ -58,13 +58,13 @@ class Simulation(ABC):
     def sim_state(self) -> MujocoState:
         """Returns the current simulation state."""
         return MujocoState(
-            time=self.task.data.time,
-            qpos=self.task.data.qpos,
-            qvel=self.task.data.qvel,
-            xpos=self.task.data.xpos,
-            xquat=self.task.data.xquat,
-            mocap_pos=self.task.data.mocap_pos,
-            mocap_quat=self.task.data.mocap_quat,
+            time=self.task.data.time,  # type: ignore
+            qpos=self.task.data.qpos,  # type: ignore
+            qvel=self.task.data.qvel,  # type: ignore
+            xpos=self.task.data.xpos,  # type: ignore
+            xquat=self.task.data.xquat,  # type: ignore
+            mocap_pos=self.task.data.mocap_pos,  # type: ignore
+            mocap_quat=self.task.data.mocap_quat,  # type: ignore
             sim_metadata=self.task.get_sim_metadata(),
         )
 
