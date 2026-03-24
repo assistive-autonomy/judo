@@ -38,7 +38,7 @@ class SimulationNode(DoraNode):
         """Resolve a simulation backend class by name, checking custom backends first."""
         if backend in self._custom_backends:
             return self._custom_backends[backend]
-        from judo.simulation import get_simulation_backend
+        from judo.simulation import get_simulation_backend  # noqa: PLC0415, I001
 
         return get_simulation_backend(backend)
 

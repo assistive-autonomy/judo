@@ -6,7 +6,7 @@ from judo.simulation.policy_mj_simulation import PolicyMJSimulation
 
 
 def _get_policy_mj_simulation() -> type[MJSimulation]:
-    from judo.simulation.policy_mj_simulation import PolicyMJSimulation
+    from judo.simulation.policy_mj_simulation import PolicyMJSimulation  # noqa: PLC0415, I001
 
     return PolicyMJSimulation
 
