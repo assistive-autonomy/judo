@@ -39,6 +39,7 @@ class SimulationNode(DoraNode):
         if backend in self._custom_backends:
             return self._custom_backends[backend]
         from judo.simulation import get_simulation_backend
+
         return get_simulation_backend(backend)
 
     def _init_sim(self, task_name: str) -> None:

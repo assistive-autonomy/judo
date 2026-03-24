@@ -2,7 +2,7 @@
 
 import warnings
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from omegaconf import DictConfig
@@ -419,7 +419,7 @@ def make_controller(
     optimizer_registration_cfg: DictConfig | None = None,
     rollout_backend: Literal["mujoco"] = "mujoco",
     controller_cls: type[Controller] | None = None,
-    **controller_kwargs,
+    **controller_kwargs: Any,
 ) -> Controller:
     """Make a controller."""
     available_optimizers = get_registered_optimizers()

@@ -2,6 +2,7 @@
 
 import time
 from threading import Lock
+from typing import Callable
 
 import pyarrow as pa
 from dora_utils.dataclasses import from_event, to_arrow
@@ -24,7 +25,7 @@ class ControllerNode(DoraNode):
         task_registration_cfg: DictConfig | None = None,
         optimizer_registration_cfg: DictConfig | None = None,
         controller_cls: type[Controller] | None = None,
-        make_controller_fn=None,
+        make_controller_fn: Callable | None = None,
     ) -> None:
         """Initialize the controller node."""
         super().__init__(node_id=node_id, max_workers=max_workers)

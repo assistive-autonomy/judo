@@ -4,8 +4,9 @@ from judo.simulation.base import Simulation
 from judo.simulation.mj_simulation import MJSimulation
 
 
-def _get_policy_mj_simulation():
+def _get_policy_mj_simulation() -> type[MJSimulation]:
     from judo.simulation.policy_mj_simulation import PolicyMJSimulation
+
     return PolicyMJSimulation
 
 
