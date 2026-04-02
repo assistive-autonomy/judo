@@ -8,7 +8,7 @@ from dora_utils.node import DoraNode, on_event
 from omegaconf import DictConfig
 from viser import GuiFolderHandle, GuiImageHandle, GuiInputHandle, IcosphereHandle, MeshHandle
 
-from judo.app.structs import MujocoState
+from judo.app.structs import WorldState
 from judo.tasks import Task, TaskConfig
 from judo.visualizers.visualizer import Visualizer
 
@@ -88,7 +88,7 @@ class VisualizationNode(DoraNode):
             self.node.send_output("task_config", *to_arrow(self.visualizer.task_config))
         self.visualizer.task_config_updated.clear()
 
-    @on_event("INPUT", "states")
+    @on_event("INPUT", "world_states")
     def update_states(self, event: dict) -> None:
         """Callback to update states on receiving a new state measurement."""
         if self.visualizer.controller_config.spline_order == "cubic" and self.visualizer.optimizer_config.num_nodes < 4:
@@ -99,11 +99,12 @@ class VisualizationNode(DoraNode):
                     break
             self.visualizer.optimizer_config_updated.set()
 
-        state_msg = from_arrow(event["value"], event["metadata"], MujocoState)
+        # TODO: change the mujoco state
+        world_state_msg = from_arrow(event["value"], event["metadata"], WorldState)
         try:
             with self.visualizer.task_lock:
-                self.visualizer.data.xpos[:] = state_msg.xpos
-                self.visualizer.data.xquat[:] = state_msg.xquat
+                self.visualizer.data.xpos[:] = world_state_msg.xpos
+                self.visualizer.data.xquat[:] = world_state_msg.xquat
                 self.visualizer.viser_model.set_data(self.visualizer.data)
         except ValueError:
             # we're switching tasks and the new task has a different number of xpos/xquat

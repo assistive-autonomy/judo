@@ -102,6 +102,8 @@ class SimulationNode(DoraNode):
         """Reads data from simulation and writes to output topic."""
         arr, metadata = to_arrow(self.sim.sim_state)
         self.node.send_output("states", arr, metadata)
+        arr, metadata = to_arrow(self.sim.world_state)
+        self.node.send_output("world_states", arr, metadata)
 
     @on_event("INPUT", "sim_pause")
     def set_paused_status(self, event: dict) -> None:

@@ -20,11 +20,12 @@ dataflow:
           queue_size: 1
       outputs:
         - states
+        - world_states
     - id: visualization
       path: dynamic
       inputs:
-        states:
-          source: simulation/states
+        world_states:
+          source: simulation/world_states
           queue_size: 1
         traces:
           source: controller/traces

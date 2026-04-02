@@ -34,8 +34,6 @@ class MujocoState:
     time: float
     qpos: np.ndarray
     qvel: np.ndarray
-    xpos: np.ndarray
-    xquat: np.ndarray
     mocap_pos: np.ndarray
     mocap_quat: np.ndarray
     sim_metadata: dict[str, Any]
@@ -82,3 +80,11 @@ class SplineData:
             fill_value=fill_value,  # type: ignore
             bounds_error=not self.extrapolate,
         )
+
+
+@dataclass
+class WorldState:
+    """Struct for world states used in visualization."""
+
+    xpos: np.ndarray
+    xquat: np.ndarray
