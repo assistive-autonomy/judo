@@ -5815,11 +5815,11 @@ packages:
 - pypi: ./
   name: judo-rai
   version: 0.0.7
-  sha256: 33885b6fc56c36febc7cf72d8dfbb693151e72402a0dcf7a3554c2ea2d826d13
+  sha256: 2d160abdcc1517521afc90c098252cf0139d61c90006fd186a23a428e3fe2ca1
   requires_dist:
   - dora-utils
   - h5py
-  - mujoco>=3.6.0
+  - mujoco>=3.5.0
   - numpy
   - pillow
   - pycparser
