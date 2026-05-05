@@ -24,6 +24,7 @@ from judo.tasks.spot import (
 )
 from judo.tasks.spot.spot_constants import SPOT_LOCOMOTION_POLICY_PATH
 
+
 @dataclass(frozen=True)
 class TaskRegistration:
     """Complete registration metadata for a task."""

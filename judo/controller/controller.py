@@ -30,7 +30,6 @@ from judo.utils.rollout_backend import RolloutBackend
 from judo.utils.timer import Timer
 from judo.visualizers.utils import get_trace_sensors
 
-
 RolloutBackendEntry = type[RolloutBackend]
 
 

@@ -147,8 +147,7 @@ def _require_mujoco_extensions() -> None:
         import mujoco_extensions  # noqa: F401, PLC0415
     except Exception as e:  # pragma: no cover - environment dependent
         raise RuntimeError(
-            "mujoco_extensions is required but could not be imported. "
-            "Build it with: pixi run build"
+            "mujoco_extensions is required but could not be imported. Build it with: pixi run build"
         ) from e
 
 

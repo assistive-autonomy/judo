@@ -4,7 +4,6 @@ from judo.simulation.base import Simulation
 from judo.simulation.hierarchical_mj_simulation import HierarchicalMJSimulation
 from judo.simulation.mj_simulation import MJSimulation
 
-
 DEFAULT_SIMULATION_BACKEND_REGISTRY: dict[str, type[Simulation]] = {
     "mujoco": MJSimulation,
     "mujoco_hierarchical": HierarchicalMJSimulation,

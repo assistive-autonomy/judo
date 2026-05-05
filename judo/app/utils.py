@@ -34,9 +34,9 @@ def register_tasks_from_cfg(task_registration_cfg: DictConfig) -> None:
         locomotion_policy_path = task_dict.get("locomotion_policy_path", None)
         assert isinstance(rollout_backend, str), "rollout_backend must be a string."
         assert isinstance(simulation_backend, str), "simulation_backend must be a string."
-        assert locomotion_policy_path is None or isinstance(
-            locomotion_policy_path, str
-        ), "locomotion_policy_path must be a string if provided."
+        assert locomotion_policy_path is None or isinstance(locomotion_policy_path, str), (
+            "locomotion_policy_path must be a string if provided."
+        )
         register_task(
             str(task_name),
             task_cls,
