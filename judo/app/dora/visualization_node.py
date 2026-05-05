@@ -114,7 +114,6 @@ class VisualizationNode(DoraNode):
                     break
             self.visualizer.optimizer_config_updated.set()
 
-        # TODO: change the mujoco state
         render_pose_msg = from_arrow(event["value"], event["metadata"], RenderPose)
         try:
             with self.visualizer.task_lock:
