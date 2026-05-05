@@ -122,7 +122,6 @@ def test_normalizer_type_change() -> None:
     controller = make_controller(
         init_task="cylinder_push",
         init_optimizer="cem",
-        rollout_backend="mujoco",
     )
 
     # Initially should be IdentityNormalizer
@@ -147,7 +146,6 @@ def test_normalizer_in_update_action_loop() -> None:
         controller = make_controller(
             init_task="cylinder_push",
             init_optimizer="cem",
-            rollout_backend="mujoco",
         )
         controller.controller_cfg = ControllerConfig(action_normalizer=normalizer_type)
 
@@ -164,7 +162,6 @@ def test_min_max_normalizer_with_task_control_ranges() -> None:
     controller = make_controller(
         init_task="cylinder_push",
         init_optimizer="cem",
-        rollout_backend="mujoco",
     )
     controller.controller_cfg = ControllerConfig(action_normalizer="min_max", max_opt_iters=1)
 
@@ -196,7 +193,6 @@ def test_running_normalizer_updates_with_optimizer_data() -> None:
     controller = make_controller(
         init_task="cylinder_push",
         init_optimizer="cem",
-        rollout_backend="mujoco",
     )
     controller.controller_cfg = ControllerConfig(action_normalizer="running", max_opt_iters=1)
 

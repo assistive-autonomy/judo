@@ -9,7 +9,6 @@ from dora_utils.node import DoraNode, on_event
 from omegaconf import DictConfig
 
 from judo.app.structs import SplineData
-from judo.simulation import DEFAULT_SIMULATION_BACKEND_REGISTRY
 from judo.simulation.base import Simulation
 from judo.tasks import get_registered_tasks
 
@@ -23,40 +22,42 @@ class SimulationNode(DoraNode):
         init_task: str = "cylinder_push",
         max_workers: int | None = None,
         task_registration_cfg: DictConfig | None = None,
-        backend_registry: dict[str, type[Simulation]] | None = None,
+        simulation_backend: str = "mujoco",
+        custom_backends: dict[str, type[Simulation]] | None = None,
     ) -> None:
-        """Initialize the simulation node.
-
-        Args:
-            node_id: Identifier for this dora node.
-            init_task: Name of the task to initialize.
-            max_workers: Maximum number of worker threads for dora (None = auto).
-            task_registration_cfg: Optional config for task registration overrides.
-            backend_registry: Optional mapping of backend names → Simulation classes. Checked first before built-in registry.
-        """
+        """Initialize the simulation node."""
         super().__init__(node_id=node_id, max_workers=max_workers)
+        self._simulation_backend = simulation_backend
         self._task_registration_cfg = task_registration_cfg
-        self._backend_registry = dict(DEFAULT_SIMULATION_BACKEND_REGISTRY)
-        self._backend_registry.update(backend_registry or {})
+        self._custom_backends = custom_backends or {}
         self._init_sim(init_task)
         self.control_spline: Callable | None = None
         self.write_states()
 
-    def _resolve_backend(self, backend_name: str) -> type[Simulation]:
-        """Resolve a simulation backend class by name from merged registry."""
-        backend_cls = self._backend_registry.get(backend_name)
-        if backend_cls is None:
-            raise KeyError(f"Unknown simulation backend: {backend_name!r}")
-        return backend_cls
+    def _resolve_backend(self, backend: str) -> type:
+        """Resolve a simulation backend class by name, checking custom backends first."""
+        if backend in self._custom_backends:
+            return self._custom_backends[backend]
+        from judo.simulation import get_simulation_backend  # noqa: PLC0415, I001
+
+        return get_simulation_backend(backend)
 
     def _init_sim(self, task_name: str) -> None:
-        """Initialize simulation using the task's registered simulation backend."""
+        """Initialize simulation, auto-upgrading to policy backend if needed."""
         task_entry = get_registered_tasks().get(task_name)
         if task_entry is None:
             raise ValueError(f"Task {task_name} not found in task registry.")
 
-        sim_backend_cls = self._resolve_backend(task_entry.simulation_backend)
+        task_cls, _ = task_entry
+        backend = getattr(task_cls, "default_backend", None) or self._simulation_backend
+
+        sim_backend_cls = self._resolve_backend(backend)
         self.sim = sim_backend_cls(init_task=task_name, task_registration_cfg=self._task_registration_cfg)
+
+        # Auto-upgrade to policy backend if task requires locomotion policy
+        if backend == "mujoco" and self.sim.task.uses_locomotion_policy:
+            sim_backend_cls = self._resolve_backend("mujoco_policy")
+            self.sim = sim_backend_cls(init_task=task_name, task_registration_cfg=self._task_registration_cfg)
 
     @on_event("INPUT", "task")
     def update_task(self, event: dict) -> None:

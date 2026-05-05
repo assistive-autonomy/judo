@@ -11,7 +11,6 @@ from omegaconf import DictConfig
 
 from judo.app.structs import MujocoState
 from judo.controller import Controller, make_controller
-from judo.tasks import get_task_registration
 
 
 class ControllerNode(DoraNode):
@@ -50,13 +49,11 @@ class ControllerNode(DoraNode):
 
     def _build_controller(self, task_name: str, optimizer_name: str) -> Controller:
         """Build controller using the task's registered rollout backend."""
-        rollout_backend = get_task_registration(task_name).rollout_backend
         return self._make_controller_fn(
             init_task=task_name,
             init_optimizer=optimizer_name,
             task_registration_cfg=self._task_registration_cfg,
             optimizer_registration_cfg=self._optimizer_registration_cfg,
-            rollout_backend=rollout_backend,
         )
 
     def _current_optimizer_name(self) -> str:

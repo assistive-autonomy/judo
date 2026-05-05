@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
-from judo.app.structs import MujocoState, WorldState
+from judo.app.structs import MujocoState, RenderPose
 from judo.app.utils import register_tasks_from_cfg
 from judo.tasks import get_registered_tasks
 from judo.tasks.base import Task
@@ -66,9 +66,9 @@ class Simulation(ABC):
         )
 
     @property
-    def world_state(self) -> WorldState:
-        """Returns the current global state."""
-        return WorldState(
+    def render_pose(self) -> RenderPose:
+        """Returns the current pose data used for visualization."""
+        return RenderPose(
             xpos=self.task.data.xpos,  # type: ignore
             xquat=self.task.data.xquat,  # type: ignore
         )

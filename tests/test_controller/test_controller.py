@@ -49,7 +49,6 @@ def test_max_opt_iters(temp_np_seed: Callable) -> None:
         controller = make_controller(
             init_task="cylinder_push",
             init_optimizer="cem",
-            rollout_backend="mujoco",
         )
         controller.controller_cfg = ControllerConfig(max_opt_iters=max_opt_iters)
         controller.optimizer = opt
@@ -87,7 +86,6 @@ def test_update_action() -> None:
         controller = make_controller(
             init_task="cylinder_push",
             init_optimizer="cem",
-            rollout_backend="mujoco",
         )
         controller.optimizer = opt
         return controller

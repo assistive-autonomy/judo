@@ -717,7 +717,6 @@ def make_controller(
     init_optimizer: str,
     task_registration_cfg: DictConfig | None = None,
     optimizer_registration_cfg: DictConfig | None = None,
-    rollout_backend: str = "mujoco",
     controller_cls: type[Controller] | None = None,
     **controller_kwargs: Any,
 ) -> Controller:
@@ -726,10 +725,16 @@ def make_controller(
     Args:
         init_task: The task name to use.
         init_optimizer: The optimizer name to use.
-        task_registration_cfg: Optional task registration config.
-        optimizer_registration_cfg: Optional optimizer registration config.
-        rollout_backend: Either a backend type string ("mujoco") to create a new backend,
-            or an existing WarpRolloutBackend instance to share with other controllers.
+        task_registration_cfg: Optional task registration overrides keyed by task name.
+            Each entry must contain `task` and `config` import paths, and may also define
+            `rollout_backend`, `simulation_backend`, and `locomotion_policy_path`.
+            See register_tasks_from_cfg for the exact supported schema.
+        optimizer_registration_cfg: Optional optimizer registration overrides keyed by
+            optimizer name. Each entry must contain `optimizer` and `config` import paths.
+            See register_optimizers_from_cfg for the exact supported schema.
+        controller_cls: Optional controller class to instantiate instead of Controller.
+        **controller_kwargs: Additional keyword arguments forwarded to the controller
+            constructor.
 
     Returns:
         The created Controller instance.
@@ -746,6 +751,7 @@ def make_controller(
 
     assert task_entry is not None, f"Task {init_task} not found in task registry."
     assert optimizer_entry is not None, f"Optimizer {init_optimizer} not found in optimizer registry."
+    task_registration = get_task_registration(init_task)
 
     # instantiate the task/optimizer/controller
     task = task_entry.task_type()
@@ -763,6 +769,6 @@ def make_controller(
         controller_config=controller_cfg,
         task=task,
         optimizer=optimizer,
-        rollout_backend=rollout_backend,
+        rollout_backend=task_registration.rollout_backend,
         **controller_kwargs,
     )

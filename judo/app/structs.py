@@ -83,8 +83,8 @@ class SplineData:
 
 
 @dataclass
-class WorldState:
-    """Struct for world states used in visualization."""
+class RenderPose:
+    """Struct for visualization poses used by the renderer."""
 
     xpos: np.ndarray
     xquat: np.ndarray
