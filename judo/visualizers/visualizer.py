@@ -15,7 +15,7 @@ from judo.config import set_config_overrides
 from judo.controller import ControllerConfig
 from judo.gui import create_gui_elements
 from judo.optimizers import get_registered_optimizers
-from judo.tasks import Task, TaskConfig, get_registered_tasks
+from judo.tasks import TaskRegistration, get_registered_tasks
 from judo.visualizers.model import ViserMjModel
 
 ElementType = GuiImageHandle | GuiInputHandle | GuiFolderHandle | MeshHandle | IcosphereHandle
@@ -39,7 +39,7 @@ class Visualizer:
         optimizer_override_cfg: DictConfig | None = None,
         sim_pause_button: bool = True,
         geom_exclude_substring: str = "collision",
-        available_tasks: dict[str, tuple[type[Task], type[TaskConfig]]] | None = None,
+        available_tasks: dict[str, TaskRegistration] | None = None,
     ) -> None:
         """Initialize the visualization node."""
         # handling custom task and optimizer registration
@@ -106,8 +106,7 @@ class Visualizer:
         if task_entry is None:
             raise ValueError(f"Task {task_name} not found in the task registry.")
 
-        task_cls, _ = task_entry
-        self.task = task_cls()
+        self.task = task_entry.task_type()
         self.task_config = self.task.config
         self.data = mujoco.MjData(self.task.model)
         self.viser_model = ViserMjModel(

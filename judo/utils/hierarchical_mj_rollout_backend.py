@@ -1,6 +1,6 @@
 # Copyright (c) 2025 Robotics and AI Institute LLC. All rights reserved.
 
-"""MuJoCo rollout backend with locomotion policy support."""
+"""MuJoCo rollout backend with hierarchical low-level policy support."""
 
 from pathlib import Path
 
@@ -11,8 +11,8 @@ from judo.tasks.spot.spot_constants import DEFAULT_SPOT_ROLLOUT_CUTOFF_TIME
 from judo.utils.rollout_backend import RolloutBackend
 
 
-class PolicyMJRolloutBackend(RolloutBackend):
-    """Rollout backend with C++ mujoco_extensions and ONNX locomotion policy inference.
+class HierarchicalMJRolloutBackend(RolloutBackend):
+    """Rollout backend with C++ mujoco_extensions and ONNX low-level policy inference.
 
     For Spot tasks, the command format is a 25-dim vector:
     [base_vel(3), arm(7), legs(12), torso(3)]
@@ -25,12 +25,12 @@ class PolicyMJRolloutBackend(RolloutBackend):
         policy_path: str | Path,
         physics_substeps: int = 2,
     ) -> None:
-        """Initialize the policy rollout backend.
+        """Initialize the hierarchical rollout backend.
 
         Args:
             model: MuJoCo model for the scene.
             num_threads: Number of parallel rollout threads.
-            policy_path: Path to ONNX locomotion policy.
+            policy_path: Path to the ONNX low-level policy.
             physics_substeps: Physics steps per control step.
         """
         self.num_threads = num_threads
@@ -41,7 +41,7 @@ class PolicyMJRolloutBackend(RolloutBackend):
         self._setup_mujoco_extensions(model, policy_path, num_threads)
 
     def _setup_mujoco_extensions(self, model: MjModel, policy_path: str | Path, num_threads: int) -> None:
-        """Setup the mujoco_extensions C++ rollout backend with ONNX policy."""
+        """Setup the mujoco_extensions C++ rollout backend with ONNX low-level policy."""
         try:
             from mujoco_extensions.policy_rollout import create_systems_vector, threaded_rollout  # type: ignore  # noqa: PLC0415, I001
         except ImportError as e:
@@ -60,7 +60,7 @@ class PolicyMJRolloutBackend(RolloutBackend):
         controls: np.ndarray,
         last_policy_output: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-        """Conduct parallel rollouts with policy inference.
+        """Conduct parallel rollouts with hierarchical policy inference.
 
         Args:
             x0: Initial state, shape (nq+nv,). Will be tiled to num_threads internally.
@@ -78,7 +78,7 @@ class PolicyMJRolloutBackend(RolloutBackend):
             x0 = np.tile(x0, (self.num_threads, 1))
 
         if last_policy_output is None:
-            raise ValueError("last_policy_output is required for PolicyMJRolloutBackend")
+            raise ValueError("last_policy_output is required for HierarchicalMJRolloutBackend")
 
         x0 = np.asarray(x0, dtype=np.float64)
         controls = np.asarray(controls, dtype=np.float64)

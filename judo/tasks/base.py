@@ -82,18 +82,9 @@ class Task(ABC, Generic[ConfigT]):
         return self.model.nu
 
     @property
-    def locomotion_policy_path(self) -> str | None:
-        """Path to locomotion policy for this task, or None if not used.
-
-        Override in tasks that use a learned locomotion policy
-        (e.g., Spot tasks that run an ONNX policy at 50Hz).
-        """
-        return None
-
-    @property
     def uses_locomotion_policy(self) -> bool:
         """Whether this task uses a locomotion policy for simulation."""
-        return self.locomotion_policy_path is not None
+        return False
 
     @property
     def actuator_ctrlrange(self) -> np.ndarray:

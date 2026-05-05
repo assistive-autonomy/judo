@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 from viser import GuiFolderHandle, GuiImageHandle, GuiInputHandle, IcosphereHandle, MeshHandle
 
 from judo.app.structs import WorldState
-from judo.tasks import Task, TaskConfig
+from judo.tasks import TaskRegistration
 from judo.visualizers.visualizer import Visualizer
 
 ElementType = GuiImageHandle | GuiInputHandle | GuiFolderHandle | MeshHandle | IcosphereHandle
@@ -30,9 +30,24 @@ class VisualizationNode(DoraNode):
         optimizer_override_cfg: DictConfig | None = None,
         sim_pause_button: bool = True,
         geom_exclude_substring: str = "collision",
-        available_tasks: dict[str, tuple[type[Task], type[TaskConfig]]] | None = None,
+        available_tasks: dict[str, TaskRegistration] | None = None,
     ) -> None:
-        """Initialize the visualization node."""
+        """Initialize the visualization node (Viser web GUI for task/optimizer control).
+
+        Args:
+            node_id: Identifier for this dora node.
+            max_workers: Maximum number of worker threads for dora (None = auto).
+            init_task: Name of the task to initialize.
+            init_optimizer: Name of the optimizer to initialize (e.g., "cem", "ps").
+            task_registration_cfg: Optional config for task registration overrides.
+            optimizer_registration_cfg: Optional config for optimizer registration overrides.
+            controller_override_cfg: Optional config overrides for the controller.
+            optimizer_override_cfg: Optional config overrides for the optimizer.
+            sim_pause_button: Whether to display a simulation pause button in the GUI.
+            geom_exclude_substring: Geometry name substring to exclude from visualization (default "collision" hides collision shapes).
+            available_tasks: Optional pre-computed mapping of task names to TaskRegistration entries
+                for the task selector. If None, tasks are inferred from the task registry.
+        """
         super().__init__(node_id=node_id, max_workers=max_workers)
         self.visualizer = Visualizer(
             init_task=init_task,

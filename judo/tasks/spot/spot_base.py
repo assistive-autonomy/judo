@@ -32,7 +32,6 @@ from judo.tasks.spot.spot_constants import (
     LEG_SOFT_UPPER_JOINT_LIMITS,
     LEGS_STANDING_POS,
     LEGS_STANDING_POS_RL,
-    SPOT_LOCOMOTION_POLICY_PATH,
     STANDING_HEIGHT,
     STANDING_HEIGHT_CMD,
     TORSO_CMD_INDS,
@@ -108,9 +107,9 @@ class SpotBase(Task[ConfigT], Generic[ConfigT]):
         return 2
 
     @property
-    def locomotion_policy_path(self) -> str:
-        """Path to Spot locomotion policy."""
-        return str(SPOT_LOCOMOTION_POLICY_PATH)
+    def uses_locomotion_policy(self) -> bool:  # type: ignore[override]
+        """Spot tasks always use a locomotion policy backend."""
+        return True
 
     def __init__(
         self,

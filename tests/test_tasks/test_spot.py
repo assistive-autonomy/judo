@@ -4,6 +4,7 @@ from typing import Callable
 
 import numpy as np
 
+from judo.tasks import get_task_registration
 from judo.tasks.spot import SpotTireUpright
 from judo.tasks.spot.spot_base import SpotBase
 
@@ -13,7 +14,8 @@ def test_spot_base_init() -> None:
     task = SpotBase()
     assert task.name == "spot_base"
     assert task.physics_substeps == 2
-    assert task.locomotion_policy_path is not None
+    assert task.uses_locomotion_policy
+    assert get_task_registration(task.name).locomotion_policy_path is not None
     # Base + arm = 3 + 7 = 10
     assert task.nu == 10
 
@@ -23,7 +25,8 @@ def test_spot_tire_upright_init() -> None:
     task = SpotTireUpright()
     assert task.name == "spot_tire_upright"
     assert task.physics_substeps == 2
-    assert task.locomotion_policy_path is not None
+    assert task.uses_locomotion_policy
+    assert get_task_registration(task.name).locomotion_policy_path is not None
     # Base + arm + legs + leg_selection = 3 + 7 + 6 + 1 = 17
     assert task.nu == 17
 

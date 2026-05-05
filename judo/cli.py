@@ -141,8 +141,20 @@ def _warm_caches() -> None:
         pass  # non-Spot tasks don't need this
 
 
+def _require_mujoco_extensions() -> None:
+    """Fail fast if mujoco_extensions is unavailable in the current environment."""
+    try:
+        import mujoco_extensions  # noqa: F401, PLC0415
+    except Exception as e:  # pragma: no cover - environment dependent
+        raise RuntimeError(
+            "mujoco_extensions is required but could not be imported. "
+            "Build it with: pixi run build"
+        ) from e
+
+
 def app() -> None:
     """Entry point for the judo CLI."""
+    _require_mujoco_extensions()
     _warm_caches()
     # we store judo_dora_default in the config store so that custom dora configs outside of judo can inherit from it
     cs = ConfigStore.instance()
@@ -168,6 +180,7 @@ def main_benchmark(cfg: DictConfig) -> None:
 
 def benchmark() -> None:
     """Entry point for benchmarking."""
+    _require_mujoco_extensions()
     # we store benchmark_default in the config store so that custom configs located outside of judo can inherit from it
     cs = ConfigStore.instance()
     with initialize_config_dir(config_dir=str(CONFIG_PATH), version_base="1.3"):

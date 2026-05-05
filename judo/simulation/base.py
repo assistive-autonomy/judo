@@ -38,8 +38,7 @@ class Simulation(ABC):
         if task_entry is None:
             raise ValueError(f"Task {task_name} not found in task registry")
 
-        task_cls, _ = task_entry
-        self.task: Task = task_cls()
+        self.task: Task = task_entry.task_type()
         self.task.reset()
 
     @abstractmethod

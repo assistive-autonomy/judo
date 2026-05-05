@@ -11,6 +11,7 @@ from omegaconf import DictConfig
 
 from judo.app.structs import MujocoState
 from judo.controller import Controller, make_controller
+from judo.tasks import get_task_registration
 
 
 class ControllerNode(DoraNode):
@@ -24,22 +25,39 @@ class ControllerNode(DoraNode):
         max_workers: int | None = None,
         task_registration_cfg: DictConfig | None = None,
         optimizer_registration_cfg: DictConfig | None = None,
-        controller_cls: type[Controller] | None = None,
         make_controller_fn: Callable | None = None,
     ) -> None:
-        """Initialize the controller node."""
+        """Initialize the controller node.
+
+        Args:
+            init_task: Name of the task to initialize.
+            init_optimizer: Name of the optimizer to initialize (e.g., "cem", "ps", "mppi").
+            node_id: Identifier for this dora node.
+            max_workers: Maximum number of worker threads for dora (None = auto).
+            task_registration_cfg: Optional config for task registration overrides.
+            optimizer_registration_cfg: Optional config for optimizer registration overrides.
+            make_controller_fn: Optional factory function to create Controller instances.
+                Defaults to judo.controller.make_controller. Allows custom controller creation.
+        """
         super().__init__(node_id=node_id, max_workers=max_workers)
-        self._controller_cls = controller_cls or Controller
         self._make_controller_fn = make_controller_fn or make_controller
-        self.controller = self._make_controller_fn(
-            init_task=init_task,
-            init_optimizer=init_optimizer,
-            task_registration_cfg=task_registration_cfg,
-            optimizer_registration_cfg=optimizer_registration_cfg,
-        )
+        self._task_registration_cfg = task_registration_cfg
+        self._optimizer_registration_cfg = optimizer_registration_cfg
+        self.controller = self._build_controller(init_task, init_optimizer)
         self._paused = False
         self.write_controls()
         self.lock = Lock()
+
+    def _build_controller(self, task_name: str, optimizer_name: str) -> Controller:
+        """Build controller using the task's registered rollout backend."""
+        rollout_backend = get_task_registration(task_name).rollout_backend
+        return self._make_controller_fn(
+            init_task=task_name,
+            init_optimizer=optimizer_name,
+            task_registration_cfg=self._task_registration_cfg,
+            optimizer_registration_cfg=self._optimizer_registration_cfg,
+            rollout_backend=rollout_backend,
+        )
 
     def _current_optimizer_name(self) -> str:
         """Look up the name of the current optimizer from the registry."""
@@ -57,10 +75,7 @@ class ControllerNode(DoraNode):
             raise ValueError(f"Task {new_task} not found in task registry.")
 
         with self.lock:
-            self.controller = self._make_controller_fn(
-                init_task=new_task,
-                init_optimizer=self._current_optimizer_name(),
-            )
+            self.controller = self._build_controller(new_task, self._current_optimizer_name())
             self.write_controls()
 
     @on_event("INPUT", "task_reset")
