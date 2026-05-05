@@ -9,24 +9,24 @@ from typing import Any
 import numpy as np
 from tqdm import tqdm
 
-from judo.app.structs import MujocoState
+from judo.app.structs import MujocoState, RenderPose
 from judo.controller import BatchedControllers as JudoBatchedController
 from judo.controller import Controller as JudoController
+from judo.simulation.hierarchical_mj_simulation import HierarchicalMJSimulation
 from judo.simulation.mj_simulation import MJSimulation
-from judo.simulation.policy_mj_simulation import PolicyMJSimulation
 from judo.visualizers.visualizer import Visualizer
 from run_mpc.mpc_config import MPCTimers, PublicMPCConfig, SizeData
 
 
 def _get_previous_actions(sims: list[MJSimulation]) -> list[np.ndarray | None]:
     """Get previous actions from sims for hierarchical control sync."""
-    return [sim.last_policy_output if isinstance(sim, PolicyMJSimulation) else None for sim in sims]
+    return [sim.last_policy_output if isinstance(sim, HierarchicalMJSimulation) else None for sim in sims]
 
 
-def update_visualization(visualizer: Visualizer, sim_state: MujocoState, traces: np.ndarray) -> None:
-    """Update the viser visualization with current sim state and traces."""
-    visualizer.data.xpos[:] = sim_state.xpos
-    visualizer.data.xquat[:] = sim_state.xquat
+def update_visualization(visualizer: Visualizer, render_pose: RenderPose, traces: np.ndarray) -> None:
+    """Update the viser visualization with current render pose and traces."""
+    visualizer.data.xpos[:] = render_pose.xpos
+    visualizer.data.xquat[:] = render_pose.xquat
     visualizer.viser_model.set_data(visualizer.data)
     sensor_rollout_size = traces.shape[1]
     num_trace_sensors = traces.shape[2]
@@ -154,7 +154,7 @@ def run_mpc_batch(
     # Reset all simulations and controllers, sample new initial conditions + goals
     for sim, ctrl in zip(sims, controllers, strict=True):
         sim.task.reset()
-        if isinstance(sim, PolicyMJSimulation):
+        if isinstance(sim, HierarchicalMJSimulation):
             sim.reset_policy_state()
         ctrl.reset()
         ctrl.update_states(sim.sim_state)
@@ -202,7 +202,7 @@ def run_mpc_batch(
         timers.sim_step.toc()
 
         if vis is not None and num_parallel == 1:
-            update_visualization(vis, sims[0].sim_state, controllers[0].traces)
+            update_visualization(vis, sims[0].render_pose, controllers[0].traces)
             time.sleep(sims[0].timestep)
 
     results = storage.package_results(config.max_num_task_steps)

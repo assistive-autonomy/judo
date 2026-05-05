@@ -14,8 +14,8 @@ from judo.controller import BatchedControllers as JudoBatchedController
 from judo.controller import ControllerConfig
 from judo.controller.batched_spot_locomotion import BatchedSpotLocomotion
 from judo.optimizers import Optimizer
+from judo.simulation.hierarchical_mj_simulation import HierarchicalMJSimulation
 from judo.simulation.mj_simulation import MJSimulation
-from judo.simulation.policy_mj_simulation import PolicyMJSimulation
 from judo.tasks import Task as JudoTask
 from judo.utils.mjwarp_rollout_backend import MJWarpRolloutBackend
 from run_mpc.mpc_config import PublicMPCConfig, SizeData, make_size_data
@@ -58,7 +58,7 @@ def setup_mpc(
 
     for _ in range(num_parallel):
         if use_spot:
-            sim = PolicyMJSimulation(init_task=json_configs["task"])
+            sim = HierarchicalMJSimulation(init_task=json_configs["task"])
         else:
             sim = MJSimulation(init_task=json_configs["task"])
         sim.task.config = copy.deepcopy(task.config)

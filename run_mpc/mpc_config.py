@@ -119,7 +119,8 @@ def load_configs_from_json_data(json_data: Any) -> tuple[JudoTask, Optimizer, Co
     optimizer_entry = available_optimizers.get(json_data["optimizer"])
     assert optimizer_entry is not None, f"Optimizer {json_data['optimizer']} is not registered!"
 
-    task_cls, task_config_cls = task_entry
+    task_cls = task_entry.task_type
+    task_config_cls = task_entry.task_config_type
     task_config: JudoTaskConfig = dacite.from_dict(task_config_cls, json_data["task_config"])
     task: JudoTask = task_cls()
     task.config = task_config

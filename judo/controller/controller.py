@@ -3,7 +3,7 @@
 import copy
 import warnings
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 from mujoco import MjData
@@ -29,6 +29,9 @@ from judo.utils.normalization import (
 from judo.utils.rollout_backend import RolloutBackend
 from judo.utils.timer import Timer
 from judo.visualizers.utils import get_trace_sensors
+
+if TYPE_CHECKING:
+    from judo.utils.mjwarp_rollout_backend import MJWarpRolloutBackend
 
 RolloutBackendEntry = type[RolloutBackend]
 
@@ -61,7 +64,7 @@ class Controller:
         controller_config: ControllerConfig,
         task: Task,
         optimizer: Optimizer,
-        rollout_backend: str = "mujoco",
+        rollout_backend: "str | MJWarpRolloutBackend" = "mujoco",
         rollout_backend_registry: dict[str, RolloutBackendEntry] | None = None,
         rollout_backend_kwargs: dict[str, Any] | None = None,
     ) -> None:
@@ -71,7 +74,8 @@ class Controller:
             controller_config: The controller configuration.
             task: The task to use.
             optimizer: The optimizer to use.
-            rollout_backend: Name of the backend to use for rollouts (e.g., "mujoco", "mujoco_hierarchical").
+            rollout_backend: Name of the backend to use for rollouts (e.g., "mujoco", "mujoco_hierarchical"),
+                or a pre-built RolloutBackend instance to use directly (e.g., a shared MJWarpRolloutBackend).
             rollout_backend_registry: Optional mapping of backend names to backend classes.
                 Overrides entries in DEFAULT_ROLLOUT_BACKEND_REGISTRY.
             rollout_backend_kwargs: Optional extra kwargs for rollout backend constructor.
@@ -93,10 +97,14 @@ class Controller:
         self.model = self.task.model
 
         # Initialize rollout backend
-        self.rollout_backend: RolloutBackend = self._make_rollout_backend(
-            rollout_backend,
-            backend_kwargs=self._rollout_backend_kwargs,
-        )
+        if isinstance(rollout_backend, str):
+            self.rollout_backend: RolloutBackend = self._make_rollout_backend(
+                rollout_backend,
+                backend_kwargs=self._rollout_backend_kwargs,
+            )
+        else:
+            # Pre-built backend instance (e.g. shared MJWarpRolloutBackend from BatchedControllers)
+            self.rollout_backend = rollout_backend
         self._last_policy_output = (
             np.zeros((self.optimizer_cfg.num_rollouts, POLICY_OUTPUT_DIM))
             if isinstance(self.rollout_backend, HierarchicalMJRolloutBackend)

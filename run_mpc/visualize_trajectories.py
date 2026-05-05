@@ -56,8 +56,7 @@ def visualize_trajectory_batch(
     registered_tasks = get_registered_tasks()
     task_entry = registered_tasks.get(task)
     assert task_entry is not None, f"Task {task} is not registered!"
-    task_cls, _ = task_entry
-    task_instance = task_cls()
+    task_instance = task_entry.task_type()
     # Increase constraint buffers for contact-heavy scenes (e.g. Spot + tire).
     task_instance.spec.nconmax = 512
     task_instance.spec.njmax = 2048
