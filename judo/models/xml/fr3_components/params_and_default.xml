@@ -56,6 +56,13 @@
   </actuator>
 
   <sensor>
+    <!-- sensors for the arm/hand -->
+    <framezaxis name="ee_z" objtype="body" objname="hand"/>
+    <framepos name="ee_pos" objtype="body" objname="hand"/>
+    <framequat name="ee_quat" objtype="body" objname="hand"/>
+    <framelinvel name="ee_linvel" objtype="body" objname="hand"/>
+    <frameangvel name="ee_angvel" objtype="body" objname="hand"/>
+
     <!-- sensors from hand to object -->
     <distance name="left_finger_obj" cutoff="1.0" body1="left_finger" body2="object"/>
     <distance name="right_finger_obj" cutoff="1.0" body1="right_finger" body2="object"/>
@@ -66,9 +73,6 @@
 
     <!-- sensor from object to table -->
     <distance name="obj_table" cutoff="1.0" body1="object" body2="table"/>
-
-    <!-- sensors for the arm/hand -->
-    <framezaxis name="ee_z" objtype="body" objname="hand"/>
 
     <!-- traces -->
     <framepos name="trace_object" objtype="body" objname="object"/>

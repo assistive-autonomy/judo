@@ -1,5 +1,5 @@
-task: cylinder_push
-optimizer: cem
+task: fr3_handover
+optimizer: mppi
 
 dataflow:
   nodes:
