@@ -23,43 +23,20 @@ QPOS_HOME = np.array(
 
 
 class Phase(Enum):
-    """Defines the phases of the FR3 handover task."""
-
-    LIFT = 0
     MOVE = 1
-    PLACE = 2
-    HOMING = 3
+    GRIP = 2
+    TRANSFER = 3
 
-
-@slider("w_lift_close", 0.0, 10.0, 0.01)
-@slider("w_lift_height", 0.0, 10.0, 0.01)
+@slider("w_pos", 0.0, 10.0, 0.01)
+@slider("w_vel", 0.0, 10.0, 0.01)
+@slider("w_ee_quat", 0.0, 10.0, 0.01)
+@slider("w_gripper_open", 0.0, 10.0, 0.01)
 @dataclass
-class LiftConfig:
-    """Reward configuration for the lift phase of the FR3 handover task."""
-
-    w_lift_close: float = 1.0
-    w_lift_height: float = 10.0
-
-
-@slider("w_move_goal", 0.0, 10.0, 0.01)
-@slider("w_move_close", 0.0, 10.0, 0.01)
-@dataclass
-class MoveConfig:
-    """Reward configuration for the move phase of the FR3 handover task."""
-
-    w_move_goal: float = 1.0
-    w_move_close: float = 10.0
-
-
-@slider("w_place_table", 0.0, 10.0, 0.01)
-@slider("w_place_goal", 0.0, 10.0, 0.01)
-@dataclass
-class PlaceConfig:
-    """Reward configuration for the place phase of the FR3 handover task."""
-
-    w_place_table: float = 1.0
-    w_place_goal: float = 1.0
-
+class PrimitiveWeights:
+    w_pos: float = 1.0
+    w_vel: float = 2.0
+    w_ee_quat: float = 0.5
+    w_gripper_open: float = 10.0
 
 @slider("w_upright", 0.0, 10.0, 0.01)
 @slider("w_coll", 0.0, 10.0, 0.01)
@@ -74,17 +51,13 @@ class GlobalConfig:
     w_qvel: float = 0.005
     w_open: float = 2.0
 
-
 @slider("goal_radius", 0.005, 0.1, 0.005)
 @slider("pick_height", 0.0, 1.0, 0.01)
 @dataclass
 class FR3HandoverConfig(TaskConfig):
-    """Reward configuration for FR3 handover task."""
-
     # reward weights
-    lift_weights: LiftConfig = field(default_factory=LiftConfig)
-    move_weights: MoveConfig = field(default_factory=MoveConfig)
-    place_weights: PlaceConfig = field(default_factory=PlaceConfig)
+
+    primitive_weights: PrimitiveWeights = field(default_factory=PrimitiveWeights)
     global_weights: GlobalConfig = field(default_factory=GlobalConfig)
 
     goal_pos: np.ndarray = np_1d_field(
@@ -153,7 +126,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
 
         ## metadata that stores the current phase of the task
         self._data = mujoco.MjData(self.model)  # used for computing hypothetical sensor data
-        self.phase = Phase.LIFT  # default phase
+        self.phase = list(Phase)[0].value  # default phase
 
         self.reset()
 
@@ -202,53 +175,43 @@ class FR3Handover(Task[FR3HandoverConfig]):
             )
         dist = sensors[:, :, i]
         return dist
+    # def pre_rollout(self, curr_state: np.ndarray) -> None:
+    #     pass
 
-    def pre_rollout(self, curr_state: np.ndarray) -> None:
-        """Computes the current phase of the system."""
-        # update the data object associated with the current state
-        self._data.qpos[:] = curr_state[: self.model.nq]
-        self._data.qvel[:] = curr_state[self.model.nq : self.model.nq + self.model.nv]
-        mujoco.mj_forward(self.model, self._data)
+    def steering_cost(self, states: np.ndarray, sensors: np.ndarray) -> np.ndarray:
+        # Extract end-effector pose (3D) at time 0 for all rollouts
+        start_ee_pos = sensors[..., self.ee_pos_slice][:, 0, :]
+        # For "move up": assume direction is +z (robot's z axis), use config scale if needed (default: 0.1 m step)
+        rel_offset = np.zeros(3)
+        rel_offset[0] = 0.1  # move up by 0.1 meters along z
+        target_ee_pos = self.config.goal_pos # start_ee_pos + rel_offset[None, :]  # shape (N, 3)
 
-        # BUG: mujoco distance sensor seems to be broken and doesn't always return signed distance, so here we instead
-        # check the object z position
-        # curr_sensor = self._data.sensordata  # (total_sensor_dim,)
+        # Current end-effector positions (all timesteps, all rollouts)
+        ee_pos_all = sensors[..., self.ee_pos_slice]  # shape (N, T, 3)
 
-        phase = Phase.LIFT  # default phase
+        # Compute spatial error (L2 norm over all timesteps for each rollout)
+        # delta = target - current, shape (N, T, 3)
+        delta = ee_pos_all - target_ee_pos  # broadcast due to shape
+        # dist_error = np.linalg.norm(delta, axis=-1)  # (N, T)
 
-        # check whether the phase is MOVE
-        # obj_in_air = curr_sensor[self.obj_table_adr] > 0  # object is not touching the table
-        obj_in_air = curr_state[self.obj_pos_adr + 2] > 0.02 + 1e-3  # object z position is above the table
-        if obj_in_air:
-            phase = Phase.MOVE  # if the object is in the air, we are in lift phase
+        # Compute cost terms (sum over time per rollout)
+        pos_cost = np.linalg.norm(delta, axis=-1) * self.config.primitive_weights.w_pos
+        vel_cost = np.linalg.norm(sensors[..., self.ee_linvel_slice], axis=-1) * self.config.primitive_weights.w_vel
+        ee_quat_cost = np.linalg.norm(sensors[..., self.ee_quat_slice] - np.array([0.0, 0.0, 0.0, -1.0]), axis=-1) * self.config.primitive_weights.w_ee_quat
 
-        # check whether the phase is PLACE
-        in_goal_xy = self.in_goal_xy(curr_state)
-        if in_goal_xy and obj_in_air:
-            phase = Phase.PLACE  # if the object is in the goal xy, we are in place phase
+        # Gripper open cost (only if gripper is open; assume open if self.gripper_is_open[s] == True)
+        # For simplicity, assume gripper_is_open is a bool array (True if open)
+        # We'll use a constant cost if gripper is open (or 0 if closed)
+        # Since no sensor for open state, use a placeholder (could be improved)
+        gripper_cost = np.where(sensors[..., self.left_finger_obj_adr] > 0.05,  # if gripper is open (arbitrary threshold)
+                            self.config.primitive_weights.w_gripper_open * (1.0),
+                            0.0)  # shape (N,)
 
-        # check whether the phase is HOMING
-        # obj_table_dist = curr_sensor[self.obj_table_adr]
-        # if in_goal_xy and obj_table_dist <= 0:
-        #     phase = Phase.HOMING
-        obj_z_pos = curr_state[self.obj_pos_adr + 2]  # z position of the object
-        if in_goal_xy and obj_z_pos <= 0.02 + 1e-3:  # the cube is 4cm wide and we allow a tolerance
-            phase = Phase.HOMING
-
-        self.phase = phase
-
-    def steering_cost(
-        self,
-        states: np.ndarray,
-        sensors: np.ndarray,
-    ) -> np.ndarray:
-        """Computes the human instruction steered cost terms.
-
-        Placeholder funmction. Will be replaced in runtime by the VLM/LLM\
-        generated function.
-        """
-        return np.zeros(states.shape[0])  # (num_rollouts,)
-
+        # Stack costs (align shapes for summation)
+        # We'll sum all per-rollout costs (ignore time for now as per task)
+        total_cost = (pos_cost + vel_cost + ee_quat_cost + gripper_cost).sum(axis=-1)
+        return total_cost
+            
     def reward(
         self,
         states: np.ndarray,
@@ -301,32 +264,8 @@ class FR3Handover(Task[FR3HandoverConfig]):
         right_finger_touching = right_finger_table_dist <= 0.0  # (num_rollouts, T)
         hand_touching = left_finger_touching | right_finger_touching
 
-        # lift rewards
-        if self.phase == Phase.LIFT:
-            w_lift_close = self.config.lift_weights.w_lift_close
-            w_lift_height = self.config.lift_weights.w_lift_height
-            rewards = -(w_lift_close * grasp_dist + w_lift_height * pick_height_err).sum(axis=-1)
-
-        # move rewards
-        elif self.phase == Phase.MOVE:
-            w_move_goal = self.config.move_weights.w_move_goal
-            w_move_close = self.config.move_weights.w_move_close
-            rewards = -(w_move_goal * obj_goal_pos_dist + w_move_close * grasp_dist).sum(axis=-1)
-
-        # place rewards
-        elif self.phase == Phase.PLACE:
-            w_place_table = self.config.place_weights.w_place_table
-            w_place_goal = self.config.place_weights.w_place_goal
-            rewards = -(+w_place_table * obj_table_dist + w_place_goal * obj_goal_pos_dist).sum(axis=-1)
-
-        # homing rewards
-        elif self.phase == Phase.HOMING:
-            rewards = -home_dist.sum(axis=-1)
-
-        else:  # should never happen
-            raise ValueError(f"Invalid phase: {self.phase}. Must be one of {list(Phase)}.")
-
         rewards = -self.steering_cost(states, sensors)
+        # print(rewards.shape)
 
         ## global rewards
         # TODO implement cost terms for
@@ -346,7 +285,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
         rew_qvel = -(time_decay * qvel_norm).sum(axis=-1)
         rew_open = -((gripper_pos - 0.04) ** 2).sum(axis=-1)  # encourage the gripper to be open
 
-        rewards += w_upright * rew_upright + w_coll * rew_coll + w_qvel * rew_qvel + w_open * rew_open
+        # rewards = w_upright * rew_upright + w_coll * rew_coll + w_qvel * rew_qvel + w_open * rew_open
         return rewards
 
     def reset(self) -> None:
