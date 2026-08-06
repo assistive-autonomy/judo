@@ -92,7 +92,7 @@ class ViserMjModel:
 
             for geom in body.geoms:
                 geom_name = f"{body_name}/geom_{geom.name}"
-                if geom_exclude_substring and geom_exclude_substring in geom_name:
+                if (geom_exclude_substring and geom_exclude_substring in geom_name) or geom.group == 3:
                     continue
                 self.add_geom(geom_name, geom)
 
