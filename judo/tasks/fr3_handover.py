@@ -16,7 +16,7 @@ XML_PATH = str(MODEL_PATH / "xml/fr3_handover_hand_only.xml")
 # For hand only
 QPOS_HOME = np.array(
     [
-        0.7, 0, 0.02, 1, 0, 0, 0,  # object pose
+        0.7, 0, 0.05, 1, 0, 0, 0,  # object pose
         0, 0, 0, 0, 0, 0,  # arm vel
         0.04, 0.04,  # gripper pos, equality constrained
     ]
@@ -43,7 +43,7 @@ class Phase(Enum):
 class PrimitiveWeights:
     w_pos: float = 1.0
     w_vel: float = 0.0 #2.0
-    w_ee_quat: float = 0.1
+    w_ee_quat: float = 4.0
     w_gripper_open: float = 10.0
 
 @slider("w_upright", 0.0, 10.0, 0.01)
@@ -205,13 +205,13 @@ class FR3Handover(Task[FR3HandoverConfig]):
         # Compute cost terms (sum over time per rollout)
         pos_cost = np.linalg.norm(delta, axis=-1) * self.config.primitive_weights.w_pos
         vel_cost = np.linalg.norm(sensors[..., self.ee_linvel_slice], axis=-1) * self.config.primitive_weights.w_vel
-        ee_quat_err = (np.abs(np.sum(sensors[..., self.ee_quat_slice] * np.array([1.0, 0.0, 0.0, 0.0]), axis=-1)))
+        ee_quat_err = (np.abs(np.sum(sensors[..., self.ee_quat_slice] * np.array([0.0, 1.0, 0.0, 0.0]), axis=-1)))
         ee_quat_cost = 2.0 * np.arccos(np.clip(ee_quat_err, 0.0, 1.0)) * self.config.primitive_weights.w_ee_quat
         # Gripper open cost (only if gripper is open; assume open if self.gripper_is_open[s] == True)
         # For simplicity, assume gripper_is_open is a bool array (True if open)
         # We'll use a constant cost if gripper is open (or 0 if closed)
         # Since no sensor for open state, use a placeholder (could be improved)
-        gripper_cost = np.where(sensors[..., self.left_finger_obj_adr] > 0.05,  # if gripper is open (arbitrary threshold)
+        gripper_cost = np.where(sensors[..., self.left_finger_obj_adr] < 0.95,  # if gripper is open (arbitrary threshold)
                             self.config.primitive_weights.w_gripper_open * (1.0),
                             0.0)  # shape (N,)
 
