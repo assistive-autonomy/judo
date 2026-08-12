@@ -1,0 +1,47 @@
+<mujoco model="fr3_handover_hand_only">
+  <include file="fr3_components/hand/params_and_default.xml" />
+  <include file="fr3_components/hand/assets.xml" />
+  <!-- <include file="../../../../mujoco_scanned_objects/models/50_BLOCKS/assets.xml" /> -->
+  <include file="../../../../mujoco_scanned_objects/models/ACE_Coffee_Mug_Kristen_16_oz_cup/assets.xml" />
+
+  <worldbody>
+    <body name="table" pos="0.0 0.0 0.0" quat="1 0 0 0">
+      <geom name="table" type="box" size="0.75 1.25 0.01" pos="0.5 0 -0.01" rgba="0.75686275 0.43921569 0.17254902 1" />
+    </body>
+    <body name="object" pos="0.0 0.0 0.0" quat="1 0 0 0">
+      <freejoint name="object_joint"/>
+      <!-- <include file="../../../../mujoco_scanned_objects/models/50_BLOCKS/model_clean.xml" /> -->
+      <include file="../../../../mujoco_scanned_objects/models/ACE_Coffee_Mug_Kristen_16_oz_cup/model_clean.xml" />
+      <!-- <geom name="box" type="box" size="0.05 0.05 0.05" pos="0 0 0" rgba="0.1 0.5 0.5 1" /> -->
+      <!-- <geom name="cup" type="cylinder" size="0.25 1" pos="0 0 0" mass="1" rgba="0.9 0.5 0.5 1" /> -->
+    </body>
+    <body name="fr3" pos="0.0 0.0 0.0" quat="1 0 0 0">
+      <body name="eef_x" pos="0.5 0 0.45" quat="1 0 0 0">
+        <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001"/>
+        <joint name="eef_tx" type="slide" axis="1 0 0" class="eef_lin"/>
+        <body name="eef_y">
+          <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001"/>
+          <joint name="eef_ty" type="slide" axis="0 1 0" class="eef_lin"/>
+          <body name="eef_z">
+            <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001"/>
+            <joint name="eef_tz" type="slide" axis="0 0 1" class="eef_lin"/>
+            <body name="eef_rx">
+              <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001"/>
+              <joint name="eef_wx" type="hinge" axis="1 0 0" class="eef_ang"/>
+              <body name="eef_ry">
+                <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001"/>
+                <joint name="eef_wy" type="hinge" axis="0 1 0" class="eef_ang"/>
+                <body name="eef">
+                  <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001"/>
+                  <joint name="eef_wz" type="hinge" axis="0 0 1" class="eef_ang"/>
+                  <!-- attach the fr3 hand -->
+                  <include file="fr3_components/hand/fr3_hand.xml"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

@@ -1,6 +1,6 @@
 <mujoco model="fr3_pick">
-  <include file="fr3_components/params_and_default.xml" />
-  <include file="fr3_components/assets.xml" />
+  <include file="fr3_components/arm/params_and_default.xml" />
+  <include file="fr3_components/arm/assets.xml" />
   <!-- <include file="../../../../mujoco_scanned_objects/models/50_BLOCKS/assets.xml" /> -->
   <include file="../../../../mujoco_scanned_objects/models/ACE_Coffee_Mug_Kristen_16_oz_cup/assets.xml" />
 
@@ -16,7 +16,7 @@
       <!-- <geom name="cup" type="cylinder" size="0.25 1" pos="0 0 0" mass="1" rgba="0.9 0.5 0.5 1" /> -->
     </body>
     <body name="fr3" pos="0.0 0.0 0.0" quat="1 0 0 0">
-      <include file="fr3_components/fr3.xml" />
+      <include file="fr3_components/arm/fr3.xml" />
     </body>
   </worldbody>
 </mujoco>
