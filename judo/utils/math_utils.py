@@ -1,7 +1,31 @@
 # Copyright (c) 2025 Robotics and AI Institute LLC. All rights reserved.
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
+
+def quat_to_rpy(quat: np.ndarray) -> np.ndarray:
+    """Convert a quaternion to roll, pitch, yaw angles in radians.
+
+    Args:
+        quat: Quaternion in wxyz order. Shape=(*dims, 4).
+
+    Returns:
+        rpy: Roll, pitch, yaw angles. Shape=(*dims, 3).
+    """
+    return Rotation.from_quat(quat, scalar_first=True).as_euler('xyz', degrees=False)
+
+
+def rpy_to_quat(rpy: np.ndarray) -> np.ndarray:
+    """Convert roll, pitch, yaw angles in radians to a quaternion.
+
+    Args:
+        rpy: Roll, pitch, yaw angles. Shape=(*dims, 3).
+    
+    Returns:
+        quat: Quaternion in wxyz order. Shape=(*dims, 4).
+    """
+    return Rotation.from_euler('xyz', rpy, degrees=False).as_quat(scalar_first=True)
 
 def safe_normalize_axis(axis: np.ndarray, eps: float = 1e-6) -> np.ndarray:
     """Safely normalizes a batch of 3D axis vectors, avoiding division by zero.

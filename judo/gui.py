@@ -17,9 +17,12 @@ from viser import (
     ViserServer,
 )
 
+from judo.utils.math_utils import rpy_to_quat, quat_to_rpy
+
 DEFAULT_SLIDER_STEP_FLOAT = 0.01
 DEFAULT_SLIDER_STEP_INT = 1
-GOAL_RADIUS = 0.15
+GOAL_RADIUS = 0.05
+FRAME_SCALE = 0.5
 
 
 def slider(
@@ -204,14 +207,33 @@ def _get_gui_element(
                     for i in range(len(xyz_vis_indices))
                 ]
             )
+            if "rpy_vis_indices" in vis:
+                rpy_vis_indices = vis["rpy_vis_indices"]
+                rpy_vis_defaults = vis["rpy_vis_defaults"]
+                orientation_rpy = np.array(
+                    [
+                        init_value[rpy_vis_indices[i]] if rpy_vis_indices[i] is not None else rpy_vis_defaults[i]
+                        for i in range(len(rpy_vis_indices))
+                    ]
+                )
+                # convert rpy to quaternion
+                orientation = rpy_to_quat(orientation_rpy)
 
-            # make a mesh, which we can move with slider callbacks
-            mesh_handle = server.scene.add_icosphere(
-                vis["name"],
-                radius=GOAL_RADIUS,
-                color=(0.0, 0.0, 1.0),
-                position=position,
-            )
+                # make a frame, which we can move with slider callbacks
+                mesh_handle = server.scene.add_frame(
+                    vis["name"],
+                    scale=FRAME_SCALE,
+                    wxyz=orientation,
+                    position=position,
+                )
+            else:
+                # make a mesh, which we can move with slider callbacks
+                mesh_handle = server.scene.add_icosphere(
+                    vis["name"],
+                    radius=GOAL_RADIUS,
+                    color=(0.0, 0.0, 1.0),
+                    position=position,
+                )
 
             # register slider callbacks to update the mesh frame position
             for i in xyz_vis_indices:
@@ -226,6 +248,24 @@ def _get_gui_element(
                     new_pos[index] = slider_handle.value
                     with server.atomic():
                         mesh_handle.position = new_pos
+
+            if "rpy_vis_indices" in vis:
+                for i in rpy_vis_indices:
+                    if i is None:  # when None is specified in one position, we don't update it, e.g., planar visualizations
+                        continue
+                    slider_handle = slider_handles[i]
+                    j = rpy_vis_indices.index(i)  # get the index of the rpy component (0, 1, or 2)
+
+                    @slider_handle.on_update
+                    def _(
+                        _: GuiEvent, index: int = j, slider_handle: GuiSliderHandle = slider_handle
+                    ) -> None:
+                        rpy = quat_to_rpy(mesh_handle.wxyz)
+                        new_rpy = np.copy(rpy)
+                        new_rpy[index] = slider_handle.value
+                        new_orientation = rpy_to_quat(new_rpy)
+                        with server.atomic():
+                            mesh_handle.wxyz = new_orientation
 
             return [folder, mesh_handle]
         else:

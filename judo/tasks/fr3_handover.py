@@ -11,6 +11,7 @@ from judo import MODEL_PATH
 from judo.gui import slider
 from judo.tasks.base import Task, TaskConfig
 from judo.utils.fields import np_1d_field
+from judo.utils.math_utils import rpy_to_quat, quat_to_rpy, quat_mul
 
 XML_PATH = str(MODEL_PATH / "xml/fr3_handover_hand_only.xml")
 # For hand only
@@ -68,16 +69,19 @@ class FR3HandoverConfig(TaskConfig):
     primitive_weights: PrimitiveWeights = field(default_factory=PrimitiveWeights)
     global_weights: GlobalConfig = field(default_factory=GlobalConfig)
 
-    goal_pos: np.ndarray = np_1d_field(
-        np.array([0.6, 0.4, 0.5]),
-        names=["x", "y", "z"],
-        mins=[0.4, -1.0, 0.01],
-        maxs=[1.0, 1.0, 1.0],
-        steps=[0.01, 0.01, 0.01],
-        vis_name="goal_position",
+    goal_pose: np.ndarray = np_1d_field(
+        np.array([0.6, 0.4, 0.5, 0.0, 0.0, 0.0]),
+        names=["x", "y", "z", "r", "p", "y"],
+        mins=[0.4, -1.0, 0.01, -3.14, -3.14, -3.14],
+        maxs=[1.0, 1.0, 1.0, 3.14, 3.14, 3.14],
+        steps=[0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
+        vis_name="human_hand_pose",
         xyz_vis_indices=[0, 1, 2],
         xyz_vis_defaults=[0.0, 0.0, 0.0],
+        rpy_vis_indices=[3, 4, 5],
+        rpy_vis_defaults=[0.0, 0.0, 0.0],
     )
+
     goal_radius: float = 0.01
     pick_height: float = 0.3
 
@@ -149,7 +153,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
             in_goal: A bool indicating whether the object is in the goal region. Shape=(,).
         """
         obj_pos = curr_state[self.obj_pos_adr : self.obj_pos_adr + 3]  # (3,)
-        dist = np.linalg.norm(obj_pos - self.config.goal_pos)
+        dist = np.linalg.norm(obj_pos - self.config.goal_pose[:3])
         in_goal = dist <= self.config.goal_radius
         return in_goal
 
@@ -192,7 +196,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
         # For "move up": assume direction is +z (robot's z axis), use config scale if needed (default: 0.1 m step)
         rel_offset = np.zeros(3)
         rel_offset[0] = 0.1  # move up by 0.1 meters along z
-        target_ee_pos = self.config.goal_pos # start_ee_pos + rel_offset[None, :]  # shape (N, 3)
+        target_ee_pos = self.config.goal_pose[:3] # start_ee_pos + rel_offset[None, :]  # shape (N, 3)
 
         # Current end-effector positions (all timesteps, all rollouts)
         ee_pos_all = sensors[..., self.ee_pos_slice]  # shape (N, T, 3)
@@ -205,7 +209,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
         # Compute cost terms (sum over time per rollout)
         pos_cost = np.linalg.norm(delta, axis=-1) * self.config.primitive_weights.w_pos
         vel_cost = np.linalg.norm(sensors[..., self.ee_linvel_slice], axis=-1) * self.config.primitive_weights.w_vel
-        ee_quat_err = (np.abs(np.sum(sensors[..., self.ee_quat_slice] * np.array([0.0, 1.0, 0.0, 0.0]), axis=-1)))
+        ee_quat_err = (quat_mul(np.abs(np.sum((sensors[..., self.ee_quat_slice] * np.array([0.0, -0.924, 0.383, 0.0])) , axis=-1))) # * rpy_to_quat(self.config.goal_pose[3:])
         ee_quat_cost = 2.0 * np.arccos(np.clip(ee_quat_err, 0.0, 1.0)) * self.config.primitive_weights.w_ee_quat
         # Gripper open cost (only if gripper is open; assume open if self.gripper_is_open[s] == True)
         # For simplicity, assume gripper_is_open is a bool array (True if open)
@@ -258,7 +262,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
         # q_arm_goal = QPOS_HOME[self.arm_pos_slice]  # (9,)
         grasp_dist = ((grasp_site_pos - obj_pos) ** 2).sum(-1)  # (num_rollouts, T)
         pick_height_err = (z_obj - self.config.pick_height) ** 2  # (num_rollouts, T)
-        obj_goal_pos_dist = np.linalg.norm(obj_pos - self.config.goal_pos, axis=-1)  # (num_rollouts, T)
+        obj_goal_pos_dist = np.linalg.norm(obj_pos - self.config.goal_pose[:3], axis=-1)  # (num_rollouts, T)
         # home_dist = np.linalg.norm(arm_pos - q_arm_goal, axis=-1)  # (num_rollouts, T)
 
         # contact checks

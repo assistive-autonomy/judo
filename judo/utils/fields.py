@@ -17,6 +17,8 @@ def np_1d_field(
     vis_name: str | None = None,
     xyz_vis_indices: Sequence[int | None] | None = None,
     xyz_vis_defaults: Sequence[float] = (0.0, 0.0, 0.0),
+    rpy_vis_indices: Sequence[int | None] | None = None,
+    rpy_vis_defaults: Sequence[float] = (0.0, 0.0, 0.0),
 ) -> np.ndarray:
     """Create a dataclass field with a default value of a 1D numpy array.
 
@@ -32,6 +34,8 @@ def np_1d_field(
         vis_name: The name of the visualization.
         xyz_vis_indices: The indices of the array elements to visualize in 3D.
         xyz_vis_defaults: The default values for the visualization.
+        rpy_vis_indices: The indices of the array elements to visualize as roll, pitch, yaw.
+        rpy_vis_defaults: The default values for the roll, pitch, yaw visualization.
 
     Returns:
         A dataclass field with the specified default value and metadata.
@@ -77,13 +81,30 @@ def np_1d_field(
         assert all(i is None or 0 <= i < array.size for i in xyz_vis_indices), (
             "xyz_vis_indices must be a list of indices within the range of the array size."
         )
+        if rpy_vis_indices is not None:
+            assert len(rpy_vis_indices) == 3, "rpy_vis_indices must be a sequence of length 3."
+            assert all(i is None or isinstance(i, int) for i in rpy_vis_indices), (
+                "rpy_vis_indices must be a list of integers or None."
+            )
+            assert all(i is None or 0 <= i < array.size for i in rpy_vis_indices), (
+                "rpy_vis_indices must be a list of indices within the range of the array size."
+            )
 
-        # create the visualization metadata
-        vis = {
-            "name": vis_name,
-            "xyz_vis_indices": xyz_vis_indices,
-            "xyz_vis_defaults": xyz_vis_defaults,
-        }
+            # create the visualization metadata for position and orientation
+            vis = {
+                "name": vis_name,
+                "xyz_vis_indices": xyz_vis_indices,
+                "xyz_vis_defaults": xyz_vis_defaults,
+                "rpy_vis_indices": rpy_vis_indices,
+                "rpy_vis_defaults": rpy_vis_defaults,
+            }
+        else:
+            # create the visualization metadata for position
+            vis = {
+                "name": vis_name,
+                "xyz_vis_indices": xyz_vis_indices,
+                "xyz_vis_defaults": xyz_vis_defaults,
+            }
     else:
         vis = None
 

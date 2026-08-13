@@ -7,7 +7,7 @@ import numpy as np
 import viser
 from omegaconf import DictConfig
 from PIL import Image
-from viser import GuiFolderHandle, GuiImageHandle, GuiInputHandle, IcosphereHandle, MeshHandle
+from viser import GuiFolderHandle, GuiImageHandle, GuiInputHandle, IcosphereHandle, MeshHandle, FrameHandle
 
 from judo import PACKAGE_ROOT
 from judo.app.utils import register_optimizers_from_cfg, register_tasks_from_cfg
@@ -18,7 +18,7 @@ from judo.optimizers import get_registered_optimizers
 from judo.tasks import get_registered_tasks
 from judo.visualizers.model import ViserMjModel
 
-ElementType = GuiImageHandle | GuiInputHandle | GuiFolderHandle | MeshHandle | IcosphereHandle
+ElementType = GuiImageHandle | GuiInputHandle | GuiFolderHandle | MeshHandle | IcosphereHandle | FrameHandle
 
 
 class Visualizer:
