@@ -13,7 +13,7 @@ def quat_to_rpy(quat: np.ndarray) -> np.ndarray:
     Returns:
         rpy: Roll, pitch, yaw angles. Shape=(*dims, 3).
     """
-    return Rotation.from_quat(quat, scalar_first=True).as_euler('xyz', degrees=False)
+    return Rotation.from_quat(quat, scalar_first=True).as_euler("xyz", degrees=False)
 
 
 def rpy_to_quat(rpy: np.ndarray) -> np.ndarray:
@@ -21,11 +21,12 @@ def rpy_to_quat(rpy: np.ndarray) -> np.ndarray:
 
     Args:
         rpy: Roll, pitch, yaw angles. Shape=(*dims, 3).
-    
+
     Returns:
         quat: Quaternion in wxyz order. Shape=(*dims, 4).
     """
-    return Rotation.from_euler('xyz', rpy, degrees=False).as_quat(scalar_first=True)
+    return Rotation.from_euler("xyz", rpy, degrees=False).as_quat(scalar_first=True)
+
 
 def safe_normalize_axis(axis: np.ndarray, eps: float = 1e-6) -> np.ndarray:
     """Safely normalizes a batch of 3D axis vectors, avoiding division by zero.

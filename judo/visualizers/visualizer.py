@@ -7,7 +7,7 @@ import numpy as np
 import viser
 from omegaconf import DictConfig
 from PIL import Image
-from viser import GuiFolderHandle, GuiImageHandle, GuiInputHandle, IcosphereHandle, MeshHandle, FrameHandle
+from viser import FrameHandle, GuiFolderHandle, GuiImageHandle, GuiInputHandle, IcosphereHandle, MeshHandle
 
 from judo import PACKAGE_ROOT
 from judo.app.utils import register_optimizers_from_cfg, register_tasks_from_cfg

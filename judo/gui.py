@@ -17,7 +17,7 @@ from viser import (
     ViserServer,
 )
 
-from judo.utils.math_utils import rpy_to_quat, quat_to_rpy
+from judo.utils.math_utils import quat_to_rpy, rpy_to_quat
 
 DEFAULT_SLIDER_STEP_FLOAT = 0.01
 DEFAULT_SLIDER_STEP_INT = 1
@@ -251,15 +251,15 @@ def _get_gui_element(
 
             if "rpy_vis_indices" in vis:
                 for i in rpy_vis_indices:
-                    if i is None:  # when None is specified in one position, we don't update it, e.g., planar visualizations
+                    if (
+                        i is None
+                    ):  # when None is specified in one position, we don't update it, e.g., planar visualizations
                         continue
                     slider_handle = slider_handles[i]
                     j = rpy_vis_indices.index(i)  # get the index of the rpy component (0, 1, or 2)
 
                     @slider_handle.on_update
-                    def _(
-                        _: GuiEvent, index: int = j, slider_handle: GuiSliderHandle = slider_handle
-                    ) -> None:
+                    def _(_: GuiEvent, index: int = j, slider_handle: GuiSliderHandle = slider_handle) -> None:
                         rpy = quat_to_rpy(mesh_handle.wxyz)
                         new_rpy = np.copy(rpy)
                         new_rpy[index] = slider_handle.value
