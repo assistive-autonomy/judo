@@ -209,7 +209,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
         # Compute cost terms (sum over time per rollout)
         pos_cost = np.linalg.norm(delta, axis=-1) * self.config.primitive_weights.w_pos
         vel_cost = np.linalg.norm(sensors[..., self.ee_linvel_slice], axis=-1) * self.config.primitive_weights.w_vel
-        ee_quat_err = (quat_mul(np.abs(np.sum((sensors[..., self.ee_quat_slice] * np.array([0.0, -0.924, 0.383, 0.0])) , axis=-1))) # * rpy_to_quat(self.config.goal_pose[3:])
+        ee_quat_err = (np.abs(np.sum((sensors[..., self.ee_quat_slice] * quat_mul(rpy_to_quat(self.config.goal_pose[3:]), np.array([0.0, -1.0, 0.0, 0.0]))) , axis=-1))) # 0.0, -0.924, 0.383, 0.0 *
         ee_quat_cost = 2.0 * np.arccos(np.clip(ee_quat_err, 0.0, 1.0)) * self.config.primitive_weights.w_ee_quat
         # Gripper open cost (only if gripper is open; assume open if self.gripper_is_open[s] == True)
         # For simplicity, assume gripper_is_open is a bool array (True if open)
@@ -223,7 +223,7 @@ class FR3Handover(Task[FR3HandoverConfig]):
         # We'll sum all per-rollout costs (ignore time for now as per task)
         total_cost = (pos_cost + vel_cost + ee_quat_cost + gripper_cost).sum(axis=-1)
         return total_cost
-            
+
     def reward(
         self,
         states: np.ndarray,

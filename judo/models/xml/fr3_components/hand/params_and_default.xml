@@ -13,7 +13,7 @@
     </default>
     <default class="eef_ang">
       <joint damping="1.0"/>
-      <velocity kv="50" ctrlrange="-1.0 1.0"/>
+      <velocity kv="50" ctrlrange="-0.1 0.1"/>
     </default>
 
     <default class="finger">
