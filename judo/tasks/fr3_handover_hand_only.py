@@ -31,11 +31,11 @@ CTRL_HOME = np.array([0, 0, 0, 0, 0, 0, 0.04])  # fmt: skip
 @slider("w_gripper_vel", 0.0, 1.0, 0.01)
 @dataclass
 class PrimitiveWeights:
-    w_pos: float = 1.0
+    w_pos: float = 6.0
     w_vel: float = 0.0  # 2.0
-    w_ee_quat: float = 4.0
-    w_gripper_pos: float = 10.0
-    w_gripper_vel: float = 0.0
+    w_ee_quat: float = 1.0
+    w_gripper_pos: float = 1.0
+    w_gripper_vel: float = 1.0
 
 
 @slider("w_upright", 0.0, 10.0, 0.01)
@@ -219,15 +219,15 @@ class FR3HandoverHandOnly(Task[FR3HandoverHandOnlyConfig]):
             sensors[..., self.ee_linvel_slice],
             np.zeros_like(sensors[..., self.ee_linvel_slice]),
             self.config.primitive_weights.w_vel,
-            -1.0,
-            1.0,
+            -0.05,
+            0.05,
         )
         ee_angvel_cost = self.reg_norm_cost(
             sensors[..., self.ee_angvel_slice],
             np.zeros_like(sensors[..., self.ee_angvel_slice]),
             self.config.primitive_weights.w_vel,
-            -1.0,
-            1.0,
+            -0.1,
+            0.1,
         )
 
         gripper_pos_cost = self.reg_norm_cost(

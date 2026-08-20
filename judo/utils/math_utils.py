@@ -142,3 +142,18 @@ def quat_vel(u: np.ndarray, v: np.ndarray, dt: float) -> np.ndarray:
     Source: mariogc.com/post/angular-velocity-quaternions
     """
     return 2.0 * quat_mul(quat_inv(u), (v - u) / dt)[..., 1:]
+
+
+def min_max_reg(data: np.ndarray, min_val: float = -1.0, max_val: float = 1.0) -> np.ndarray:
+    """Regularizes data to be within [min_val, max_val] using min-max normalization.
+
+    Args:
+        data: Input data. Shape=(*dims,).
+        min_val: Minimum value for normalization.
+        max_val: Maximum value for normalization.
+
+    Returns:
+        Normalized data. Shape=(*dims,).
+    """
+    data = np.clip(data, min_val, max_val)
+    return (data - min_val) / (max_val - min_val)

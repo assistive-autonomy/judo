@@ -9,7 +9,7 @@
     <!-- velocity-servo defaults for the 6 Cartesian DOFs: force = kv * (ctrl - qvel) -->
     <default class="eef_lin">
       <joint damping="1.0"/>
-      <velocity kv="200" ctrlrange="-0.1 0.1"/>
+      <velocity kv="200" ctrlrange="-0.05 0.05"/>
     </default>
     <default class="eef_ang">
       <joint damping="1.0"/>
@@ -17,7 +17,7 @@
     </default>
 
     <default class="finger">
-      <joint axis="0 1 0" type="slide" range="0 0.04"/>
+      <joint damping="0.21" armature="0.195" frictionloss="1.137" axis="0 1 0" type="slide" range="0 0.04"/>
     </default>
 
     <default class="visual">
@@ -57,12 +57,11 @@
     <velocity name="wy" joint="eef_wy" class="eef_ang"/>
     <velocity name="wz" joint="eef_wz" class="eef_ang"/>
 
-    <position name="fr3_hand" joint="finger_joint1" ctrllimited="true" kp="500" kv="10" inheritrange="2.0"/>
+    <position name="fr3_hand" joint="finger_joint1" class="finger" ctrllimited="true" kp="500" kv="10" inheritrange="2.0"/>
   </actuator>
 
   <sensor>
     <!-- sensors for the arm/hand -->
-    <framezaxis name="ee_z" objtype="body" objname="hand"/>
     <framepos name="ee_pos" objtype="body" objname="hand"/>
     <framequat name="ee_quat" objtype="body" objname="hand"/>
     <framelinvel name="ee_linvel" objtype="body" objname="hand"/>
