@@ -1,4 +1,4 @@
-task: fr3_handover
+task: fr3_handover_hand_only
 optimizer: mppi
 
 dataflow:

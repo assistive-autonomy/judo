@@ -292,3 +292,43 @@ def set_default_fr3_handover_overrides() -> None:
             "temperature": 0.002,
         },
     )
+
+
+def set_default_fr3_handover_hand_only_overrides() -> None:
+    """Sets the default task-specific controller config overrides for the fr3 handover hand-only task."""
+    set_config_overrides(
+        "fr3_handover_hand_only",
+        PredictiveSamplingConfig,
+        {
+            "num_nodes": 8,
+            "num_rollouts": 64,
+            "use_noise_ramp": True,
+            "noise_ramp": 4.0,
+            "sigma": 0.2,
+        },
+    )
+    set_config_overrides(
+        "fr3_handover_hand_only",
+        CrossEntropyMethodConfig,
+        {
+            "num_nodes": 4,
+            "num_rollouts": 64,
+            "num_elites": 3,
+            "use_noise_ramp": True,
+            "noise_ramp": 4.0,
+            "sigma_min": 0.01,
+            "sigma_max": 0.3,
+        },
+    )
+    set_config_overrides(
+        "fr3_handover_hand_only",
+        MPPIConfig,
+        {
+            "num_nodes": 4,
+            "num_rollouts": 64,
+            "use_noise_ramp": True,
+            "noise_ramp": 4.0,
+            "sigma": 0.01,
+            "temperature": 0.002,
+        },
+    )
