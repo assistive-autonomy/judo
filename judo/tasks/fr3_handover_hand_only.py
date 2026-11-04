@@ -16,7 +16,7 @@ XML_PATH = str(MODEL_PATH / "xml/fr3_handover_hand_only.xml")
 # For hand only
 QPOS_HOME = np.array(
     [
-        0.7, 0, 0.05, 1, 0, 0, 0,  # object pose
+        0.7, 0, 0.03, 1, 0, 0, 0,  # object pose
         0, 0, 0, 0, 0, 0,  # arm vel
         0.04, 0.04,  # gripper pos, equality constrained
     ]
@@ -62,12 +62,13 @@ class FR3HandoverHandOnlyConfig(TaskConfig):
     global_weights: GlobalConfig = field(default_factory=GlobalConfig)
 
     goal_pose: np.ndarray = np_1d_field(
-        np.array([0.6, 0.4, 0.5, 0.0, 0.0, 0.0]),
+        np.array([0.5, 0.0, 0.45, 0.0, 0.0, 0.0]),
+        # np.array([0.6, 0.4, 0.5, 0.0, 0.0, 0.0]),        
         names=["x", "y", "z", "r", "p", "y"],
         mins=[0.4, -1.0, 0.01, -3.14, -3.14, -3.14],
         maxs=[1.0, 1.0, 1.0, 3.14, 3.14, 3.14],
         steps=[0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-        vis_name="human_hand_pose",
+        vis_name="goal_pose",
         xyz_vis_indices=[0, 1, 2],
         xyz_vis_defaults=[0.0, 0.0, 0.0],
         rpy_vis_indices=[3, 4, 5],
